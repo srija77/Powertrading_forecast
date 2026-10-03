@@ -1,0 +1,103 @@
+{
+  "expectation_suite_name": "weather_suite",
+  "expectations": [
+    {
+      "expectation_type": "expect_table_columns_to_match_set",
+      "kwargs": {
+        "column_set": [
+          "time",
+          "temperature",
+          "humidity",
+          "windspeed_100m",
+          "cloud_cover",
+          "rainfall",
+          "city_name",
+          "ingestion_date",
+          "source_file",
+          "pipeline_run_id"
+        ],
+        "exact_match": false
+      }
+    },
+    {
+      "expectation_type": "expect_table_row_count_to_be_between",
+      "kwargs": { "min_value": 1 }
+    },
+    {
+      "expectation_type": "expect_column_values_to_not_be_null",
+      "kwargs": { "column": "time" }
+    },
+    {
+      "expectation_type": "expect_column_values_to_not_be_null",
+      "kwargs": { "column": "city_name" }
+    },
+    {
+      "expectation_type": "expect_column_values_to_not_be_null",
+      "kwargs": { "column": "temperature" }
+    },
+    {
+      "expectation_type": "expect_column_values_to_not_be_null",
+      "kwargs": { "column": "humidity" }
+    },
+    {
+      "expectation_type": "expect_column_values_to_be_between",
+      "kwargs": { "column": "temperature", "min_value": -30, "max_value": 55 }
+    },
+    {
+      "expectation_type": "expect_column_values_to_be_between",
+      "kwargs": { "column": "humidity", "min_value": 0, "max_value": 100 }
+    },
+    {
+      "expectation_type": "expect_column_values_to_be_between",
+      "kwargs": { "column": "windspeed_100m", "min_value": 0, "max_value": 120 }
+    },
+    {
+      "expectation_type": "expect_column_values_to_be_between",
+      "kwargs": { "column": "cloud_cover", "min_value": 0, "max_value": 100 }
+    },
+    {
+      "expectation_type": "expect_column_values_to_be_between",
+      "kwargs": { "column": "rainfall", "min_value": 0, "max_value": 200 }
+    },
+
+    {
+      "meta": { "notes": "Rain (> 0.5 mm, ignores 0.1 mm trace drizzle) requires clouds - allow 5% tolerance" },
+      "expectation_type": "expect_column_values_to_be_between",
+      "kwargs": {
+        "column": "cloud_cover",
+        "min_value": 10,
+        "row_condition": "rainfall > 0.5",
+        "condition_parser": "pandas",
+        "mostly": 0.95
+      }
+    },
+
+    {
+      "meta": { "notes": "Very dry air should not produce rainfall" },
+      "expectation_type": "expect_column_values_to_be_between",
+      "kwargs": {
+        "column": "rainfall",
+        "min_value": 0,
+        "max_value": 0.5,
+        "row_condition": "humidity < 20",
+        "condition_parser": "pandas",
+        "mostly": 0.99
+      }
+    },
+
+    {
+      "meta": { "notes": "Clear sky should not produce rainfall" },
+      "expectation_type": "expect_column_values_to_be_between",
+      "kwargs": {
+        "column": "rainfall",
+        "min_value": 0,
+        "max_value": 1.0,
+        "row_condition": "cloud_cover == 0",
+        "condition_parser": "pandas",
+        "mostly": 0.99
+      }
+    }
+  ],
+  "evaluation_parameters": {},
+  "meta": { "great_expectations_version": "0.17.22" }
+}

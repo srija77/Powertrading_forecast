@@ -1,0 +1,75 @@
+{
+  "expectation_suite_name": "calendar_suite",
+  "expectations": [
+    {
+      "expectation_type": "expect_table_columns_to_match_set",
+      "kwargs": {
+        "column_set": [
+          "date",
+          "DAY",
+          "TIME",
+          "STADIUM",
+          "event",
+          "location",
+          "region",
+          "impact",
+          "festival_name",
+          "wedding_season",
+          "election_type",
+          "ingestion_date",
+          "source_file",
+          "pipeline_run_id"
+        ],
+        "exact_match": false
+      }
+    },
+    {
+      "expectation_type": "expect_table_row_count_to_be_between",
+      "kwargs": { "min_value": 1 }
+    },
+    {
+      "expectation_type": "expect_column_values_to_not_be_null",
+      "kwargs": { "column": "date" }
+    },
+    {
+      "expectation_type": "expect_column_values_to_match_regex",
+      "kwargs": {
+        "column": "date",
+        "regex": "^\\d{4}-\\d{2}-\\d{2}$"
+      }
+    },
+    {
+      "expectation_type": "expect_column_values_to_be_in_set",
+      "kwargs": {
+        "column": "DAY",
+        "value_set": [
+          "Monday",
+          "Tuesday",
+          "Wednesday",
+          "Thursday",
+          "Friday",
+          "Saturday",
+          "Sunday"
+        ]
+      }
+    },
+    {
+      "expectation_type": "expect_column_values_to_be_between",
+      "kwargs": { "column": "impact", "min_value": 0, "max_value": 10 }
+    },
+    {
+      "expectation_type": "expect_column_values_to_not_be_null",
+      "kwargs": { "column": "DAY" }
+    },
+    {
+      "expectation_type": "expect_column_values_to_not_be_null",
+      "kwargs": { "column": "impact" }
+    },
+    {
+      "expectation_type": "expect_column_values_to_not_be_null",
+      "kwargs": { "column": "election_type" }
+    }
+  ],
+  "evaluation_parameters": {},
+  "meta": { "great_expectations_version": "0.17.22" }
+}

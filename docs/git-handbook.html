@@ -1,0 +1,514 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>Git Handbook: Setup to Debugging</title>
+<style>
+  :root {
+    --bg: #ffffff;
+    --bg-soft: #f6f7f9;
+    --fg: #1a1d21;
+    --muted: #5c6470;
+    --line: #d7dbe0;
+    --accent: #3b6ea8;
+    --accent-soft: rgba(59, 110, 168, 0.12);
+    --code-bg: #f4f6f8;
+    --warn: #9a3412;
+    --mono: ui-monospace, SFMono-Regular, "SF Mono", Consolas, "Liberation Mono", Menlo, monospace;
+  }
+  @media (prefers-color-scheme: dark) {
+    :root {
+      --bg: #16181c;
+      --bg-soft: #1d2025;
+      --fg: #e6e8eb;
+      --muted: #9aa3af;
+      --line: #343a42;
+      --accent: #7aa7d9;
+      --accent-soft: rgba(122, 167, 217, 0.14);
+      --code-bg: #1e2126;
+      --warn: #f0a878;
+    }
+  }
+  * { box-sizing: border-box; }
+  html { scroll-behavior: smooth; }
+  body {
+    margin: 0;
+    background: var(--bg);
+    color: var(--fg);
+    font: 16px/1.65 -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, Helvetica, Arial, sans-serif;
+    -webkit-font-smoothing: antialiased;
+  }
+  .wrap { max-width: 1120px; margin: 0 auto; padding: 0 24px 96px; }
+  header { padding: 56px 0 24px; border-bottom: 1px solid var(--line); margin-bottom: 40px; }
+  h1 { font-size: 2rem; line-height: 1.25; margin: 0 0 12px; letter-spacing: -0.02em; }
+  .byline { color: var(--muted); font-size: 0.875rem; margin: 0 0 16px; }
+  .lede { color: var(--muted); max-width: 62ch; margin: 0; }
+  .layout { display: grid; grid-template-columns: 220px minmax(0, 1fr); gap: 56px; align-items: start; }
+  @media (max-width: 900px) {
+    .layout { grid-template-columns: 1fr; gap: 32px; }
+    nav.toc { position: static; }
+  }
+  nav.toc { position: sticky; top: 24px; font-size: 0.875rem; }
+  nav.toc p { text-transform: uppercase; letter-spacing: 0.08em; font-size: 0.6875rem; color: var(--muted); margin: 0 0 12px; font-weight: 600; }
+  nav.toc ol { list-style: none; margin: 0; padding: 0; counter-reset: toc; }
+  nav.toc li { counter-increment: toc; margin-bottom: 8px; }
+  nav.toc a { color: var(--muted); text-decoration: none; display: block; padding-left: 22px; position: relative; }
+  nav.toc a::before { content: counter(toc); position: absolute; left: 0; color: var(--line); font-variant-numeric: tabular-nums; }
+  nav.toc a:hover { color: var(--accent); }
+  main { min-width: 0; }
+  section { margin-bottom: 56px; scroll-margin-top: 24px; }
+  h2 { font-size: 1.375rem; margin: 0 0 8px; letter-spacing: -0.01em; padding-top: 8px; }
+  h3 { font-size: 1rem; margin: 32px 0 10px; }
+  h3 code { font-size: 0.9375rem; }
+  p { margin: 0 0 14px; max-width: 70ch; }
+  ul { max-width: 70ch; padding-left: 22px; }
+  li { margin-bottom: 6px; }
+  strong { font-weight: 600; }
+  a { color: var(--accent); }
+  code {
+    font-family: var(--mono);
+    font-size: 0.875em;
+    background: var(--code-bg);
+    padding: 0.12em 0.34em;
+    border-radius: 4px;
+  }
+  pre {
+    background: var(--code-bg);
+    border: 1px solid var(--line);
+    border-radius: 8px;
+    padding: 14px 16px;
+    overflow-x: auto;
+    margin: 0 0 16px;
+  }
+  pre code { background: none; padding: 0; font-size: 0.8125rem; line-height: 1.6; }
+  table { border-collapse: collapse; width: 100%; margin: 0 0 18px; font-size: 0.9375rem; }
+  th, td { text-align: left; padding: 9px 12px; border-bottom: 1px solid var(--line); vertical-align: top; }
+  th { font-size: 0.75rem; text-transform: uppercase; letter-spacing: 0.06em; color: var(--muted); font-weight: 600; border-bottom: 1px solid var(--fg); }
+  tbody tr:last-child td { border-bottom: none; }
+  td code { white-space: nowrap; }
+  .figure { margin: 24px 0 20px; }
+  .figure svg { width: 100%; height: auto; display: block; }
+  .figure figcaption { color: var(--muted); font-size: 0.8125rem; margin-top: 8px; }
+  .note {
+    border-left: 3px solid var(--accent);
+    background: var(--accent-soft);
+    padding: 12px 16px;
+    border-radius: 0 6px 6px 0;
+    margin: 0 0 16px;
+    max-width: 70ch;
+  }
+  .note p:last-child { margin-bottom: 0; }
+  .danger { color: var(--warn); font-weight: 600; }
+  footer { border-top: 1px solid var(--line); padding-top: 20px; color: var(--muted); font-size: 0.8125rem; }
+</style>
+</head>
+<body>
+<div class="wrap">
+
+<header>
+  <h1>Git Handbook: Setup to Debugging</h1>
+  <p class="byline">Reference &middot; last updated 27 September 2026</p>
+  <p class="lede">A practical reference for getting Git installed, a repository started, and a broken repository diagnosed. Commands are shown for Git Bash / PowerShell on Windows.</p>
+</header>
+
+<div class="layout">
+
+<nav class="toc">
+  <p>Contents</p>
+  <ol>
+    <li><a href="#install">Installing &amp; configuring</a></li>
+    <li><a href="#start">Starting a repository</a></li>
+    <li><a href="#loop">The everyday loop</a></li>
+    <li><a href="#branch">Branching &amp; merging</a></li>
+    <li><a href="#remotes">Working with remotes</a></li>
+    <li><a href="#undo">Undoing things safely</a></li>
+    <li><a href="#debug">Debugging &amp; inspecting</a></li>
+    <li><a href="#errors">Common errors decoded</a></li>
+  </ol>
+</nav>
+
+<main>
+
+<section id="install">
+  <h2>1. Installing Git and configuring it once</h2>
+  <p>Install Git, then set four config values &mdash; identity, default branch, line endings, credentials. Git refuses to commit without a name and email, so this is not optional setup.</p>
+
+  <table>
+    <thead><tr><th>Platform</th><th>Install command</th><th>Notes</th></tr></thead>
+    <tbody>
+      <tr><td>Windows</td><td><code>winget install --id Git.Git -e --source winget</code></td><td>Bundles Git Bash and Git GUI; the installer from <a href="https://git-scm.com/downloads">git-scm.com</a> works too</td></tr>
+      <tr><td>macOS</td><td><code>brew install git</code></td><td>Or <code>xcode-select --install</code> for Apple&rsquo;s older bundled build</td></tr>
+      <tr><td>Ubuntu / Debian</td><td><code>sudo apt update &amp;&amp; sudo apt install git</code></td><td></td></tr>
+      <tr><td>Fedora / RHEL</td><td><code>sudo dnf install git</code></td><td></td></tr>
+    </tbody>
+  </table>
+
+  <p>Confirm it landed and which build you got:</p>
+<pre><code>git --version</code></pre>
+
+  <h3>The one-time configuration</h3>
+  <p>Run these once per machine. <code>--global</code> writes to <code>~/.gitconfig</code>; drop the flag inside a repo to override a value for that repo alone.</p>
+<pre><code>git config --global user.name "Your Name"
+git config --global user.email "you@example.com"
+git config --global init.defaultBranch main
+git config --global core.autocrlf true          # Windows only: LF in the repo, CRLF in your working tree
+git config --global credential.helper manager   # Windows: stores GitHub creds in Credential Manager
+git config --global pull.rebase false           # make git pull merge rather than warn about ambiguity</code></pre>
+
+  <div class="note"><p>The email you set here is what GitHub matches commits against &mdash; use the address on your GitHub account or your commits will not link to your profile.</p></div>
+
+  <h3>Reading your config back</h3>
+<pre><code>git config --list --show-origin   # every value and the file it came from
+git config user.email             # one value, as Git resolves it here
+git config --global --edit        # open ~/.gitconfig in your editor</code></pre>
+  <p><code>--show-origin</code> is the one to reach for when a value is not what you expect: it reveals whether a repo-local or system config is shadowing your global setting.</p>
+</section>
+
+<section id="start">
+  <h2>2. Starting a repository</h2>
+  <p>There are two entry points: <code>git init</code> turns a folder you already have into a repository, and <code>git clone</code> copies one that already exists. Pick one &mdash; doing both to the same project is what creates unrelated histories.</p>
+
+  <h3>Path A: a folder you already have</h3>
+<pre><code>cd my-project
+git init                      # creates .git/ -- the whole repository lives in that one folder
+git add .
+git commit -m "Initial project structure"</code></pre>
+
+  <p>Then create an <strong>empty</strong> repository on GitHub &mdash; no README, no .gitignore, no licence &mdash; and attach it:</p>
+<pre><code>git remote add origin https://github.com/you/my-project.git
+git push -u origin main       # -u sets the upstream so later git push needs no arguments</code></pre>
+
+  <p>If GitHub added a README for you, that repo already has its own root commit and <code>git pull</code> will refuse to merge &mdash; see <a href="#errors">common errors</a>.</p>
+
+  <h3>Path B: a repository that already exists</h3>
+<pre><code>git clone https://github.com/you/my-project.git
+cd my-project</code></pre>
+  <p><code>clone</code> does <code>init</code>, <code>remote add origin</code>, <code>fetch</code> and <code>checkout</code> in one step, and sets up upstream tracking. Nothing else is needed.</p>
+
+  <h3>Inspecting the remote wiring</h3>
+<pre><code>git remote -v                     # the URLs behind each remote name
+git remote show origin            # branches, tracking, and what push/pull would do
+git remote set-url origin &lt;url&gt;   # change where origin points
+git remote rename origin upstream
+git remote remove origin</code></pre>
+
+  <h3>.gitignore</h3>
+  <p>Add this before your first commit &mdash; anything already committed keeps being tracked even after you ignore it.</p>
+<pre><code>.venv/
+__pycache__/
+*.pyc
+.env
+.DS_Store</code></pre>
+  <p>Already committed something you meant to ignore? <code>git rm --cached &lt;path&gt;</code> untracks it without deleting the file, then commit.</p>
+</section>
+
+<section id="loop">
+  <h2>3. The everyday loop</h2>
+  <p>Git keeps your work in four places, and the commands you use daily just move changes between them. <code>git commit</code> snapshots the <strong>staging area</strong>, never your files directly &mdash; that is the whole reason <code>git add</code> exists.</p>
+
+  <figure class="figure">
+    <svg viewBox="0 0 760 420" role="img" aria-label="Commits are built from the staging area, not from your files" font-size="13">
+      <defs>
+        <marker id="gitflow-arrow" viewBox="0 0 10 10" refX="9" refY="5" markerWidth="6" markerHeight="6" orient="auto-start-reverse">
+          <path d="M0 0L10 5L0 10z" fill="var(--line)"/>
+        </marker>
+      </defs>
+      <text x="24" y="34" font-size="15" font-weight="600" fill="var(--fg)">Commits are built from the staging area, not from your files</text>
+      <text x="24" y="54" font-size="11.5" fill="var(--muted)">Forward commands on the right, undo commands on the left</text>
+
+      <g fill="none" stroke="var(--line)" stroke-width="1.25">
+        <path d="M440 132V164" marker-end="url(#gitflow-arrow)"/>
+        <path d="M440 220V252" marker-end="url(#gitflow-arrow)"/>
+        <path d="M440 308V340" marker-end="url(#gitflow-arrow)"/>
+        <path d="M320 164V132" marker-end="url(#gitflow-arrow)"/>
+        <path d="M320 252V220" marker-end="url(#gitflow-arrow)"/>
+        <path d="M320 340V308" marker-end="url(#gitflow-arrow)"/>
+      </g>
+
+      <g>
+        <rect x="240" y="76" width="280" height="56" rx="8" fill="none" stroke="var(--line)" stroke-width="1.25"/>
+        <text x="380" y="100" text-anchor="middle" font-weight="600" fill="var(--fg)">Working tree</text>
+        <text x="380" y="116" text-anchor="middle" font-size="11.5" fill="var(--muted)">the files you edit right now</text>
+      </g>
+      <g>
+        <rect x="240" y="164" width="280" height="56" rx="8" fill="var(--accent)" fill-opacity="0.12" stroke="var(--accent)" stroke-width="2"/>
+        <text x="380" y="188" text-anchor="middle" font-weight="600" fill="var(--fg)">Staging area (the index)</text>
+        <text x="380" y="204" text-anchor="middle" font-size="11.5" fill="var(--muted)">exactly what the next commit holds</text>
+      </g>
+      <g>
+        <rect x="240" y="252" width="280" height="56" rx="8" fill="none" stroke="var(--line)" stroke-width="1.25"/>
+        <text x="380" y="276" text-anchor="middle" font-weight="600" fill="var(--fg)">Local repository</text>
+        <text x="380" y="292" text-anchor="middle" font-size="11.5" fill="var(--muted)">.git/ holds commits, branches, tags</text>
+      </g>
+      <g>
+        <rect x="240" y="340" width="280" height="56" rx="8" fill="none" stroke="var(--line)" stroke-width="1.25"/>
+        <text x="380" y="364" text-anchor="middle" font-weight="600" fill="var(--fg)">Remote (origin)</text>
+        <text x="380" y="380" text-anchor="middle" font-size="11.5" fill="var(--muted)">the copy on GitHub, shared</text>
+      </g>
+
+      <text x="452" y="152" font-size="11.5" fill="var(--muted)">git add &lt;path&gt;</text>
+      <text x="452" y="240" font-size="11.5" fill="var(--muted)">git commit -m &lt;msg&gt;</text>
+      <text x="452" y="328" font-size="11.5" fill="var(--muted)">git push</text>
+      <text x="308" y="152" text-anchor="end" font-size="11.5" fill="var(--muted)">git restore &lt;path&gt;</text>
+      <text x="308" y="240" text-anchor="end" font-size="11.5" fill="var(--muted)">git reset &lt;path&gt;</text>
+      <text x="308" y="328" text-anchor="end" font-size="11.5" fill="var(--muted)">git fetch</text>
+    </svg>
+    <figcaption>The four areas &middot; 3 forward commands, 3 undo commands</figcaption>
+  </figure>
+
+  <p>Read down the right for the forward path, up the left to undo. <code>git pull</code> is absent because it is two of these steps at once: a <code>git fetch</code> followed by a <code>git merge</code>.</p>
+
+  <h3>Status and staging</h3>
+<pre><code>git status              # what changed, what is staged, what branch you are on
+git status --short      # compact: M = modified, A = added, D = deleted, ?? = untracked
+
+git add path/to/file    # stage one file
+git add .               # stage everything under the current directory
+git add -p              # stage hunk by hunk, answering y/n -- the best habit for clean commits
+git rm --cached &lt;path&gt;  # unstage and untrack, keeping the file on disk</code></pre>
+  <p>The left column of <code>git status --short</code> is the staging area, the right column is your working tree. <code>&nbsp;M</code> means modified but not staged; <code>M&nbsp;</code> means staged; <code>MM</code> means staged, then modified again.</p>
+
+  <h3>Committing</h3>
+<pre><code>git commit -m "Add price forecast baseline"
+git commit -am "..."           # stage all *tracked* modifications and commit -- skips new files
+git commit --amend             # rewrite the last commit (message or contents)
+git commit --amend --no-edit   # fold staged changes into the last commit, same message</code></pre>
+  <div class="note"><p>Never <code>--amend</code> a commit you have already pushed and someone else has pulled &mdash; it rewrites history and their next pull will conflict.</p></div>
+
+  <h3>Reading history</h3>
+<pre><code>git log --oneline --graph --decorate --all   # the one to memorise: every branch, one line each
+git log -5                                  # the last five commits in full
+git log --stat                              # which files each commit touched
+git log -p &lt;path&gt;                           # the full diff of every commit touching one file
+git log --since="2 weeks ago" --author="Srija"</code></pre>
+</section>
+
+<section id="branch">
+  <h2>4. Branching and merging</h2>
+  <p>A branch is a movable pointer to one commit &mdash; nothing is copied when you create one, which is why branching is instant and cheap.</p>
+<pre><code>git branch                      # list local branches, * marks the current one
+git branch -a                   # include remote-tracking branches
+git branch -vv                  # show each upstream and how far ahead/behind
+
+git switch -c feature/forecast  # create a branch and move to it
+git switch main                 # move to an existing branch
+git switch -                    # back to the branch you were just on</code></pre>
+  <p><code>git checkout</code> still does both jobs, but <code>git switch</code> (branches) and <code>git restore</code> (files) were split out in Git 2.23 precisely because <code>checkout</code> doing both was the most common source of accidents. Prefer the new pair.</p>
+
+  <h3>Merging</h3>
+<pre><code>git switch main
+git merge feature/forecast
+git branch -d feature/forecast   # -d refuses if unmerged; -D forces</code></pre>
+
+  <p>Two outcomes are possible, and which one you get is not a choice you make:</p>
+  <table>
+    <thead><tr><th>Situation</th><th>What Git does</th><th>Result in the log</th></tr></thead>
+    <tbody>
+      <tr><td><code>main</code> has no new commits since the branch started</td><td><strong>Fast-forward</strong>: just moves the <code>main</code> pointer forward</td><td>A straight line, no merge commit</td></tr>
+      <tr><td>Both branches have new commits</td><td><strong>Three-way merge</strong>: builds a new commit with two parents</td><td>A fork that rejoins</td></tr>
+      <tr><td>Both changed the same lines</td><td>Stops with a conflict for you to resolve</td><td>A merge commit once you finish</td></tr>
+    </tbody>
+  </table>
+  <p>Force the shapes when you care: <code>--no-ff</code> always makes a merge commit (keeps the branch visible in history), <code>--ff-only</code> refuses unless it can fast-forward (keeps history linear).</p>
+
+  <h3>Resolving a conflict</h3>
+<pre><code>git status                # lists every file under "Unmerged paths"
+# edit each file, delete the &lt;&lt;&lt;&lt;&lt;&lt;&lt; ======= &gt;&gt;&gt;&gt;&gt;&gt;&gt; markers
+git add &lt;resolved-file&gt;   # staging a conflicted file marks it resolved
+git commit                # completes the merge, pre-filled message
+
+git merge --abort         # bail out entirely, back to before the merge</code></pre>
+  <p><code>git diff --name-only --diff-filter=U</code> lists just the still-conflicted files &mdash; useful mid-merge in a large repo.</p>
+</section>
+
+<section id="remotes">
+  <h2>5. Working with remotes</h2>
+  <p><code>git fetch</code> is always safe &mdash; it downloads commits and updates <code>origin/main</code> without touching your files. <code>git pull</code> is <code>fetch</code> plus a <code>merge</code> into your current branch, so it is the one that can produce conflicts.</p>
+<pre><code>git fetch origin              # download; your working tree is untouched
+git fetch --all --prune       # all remotes, and delete stale origin/* refs
+git log --oneline HEAD..origin/main   # what you are about to pull in
+git diff HEAD origin/main     # the actual changes it would bring
+git pull                      # fetch + merge, once you are happy</code></pre>
+  <p>That <code>fetch</code> &rarr; <code>log HEAD..origin/main</code> &rarr; <code>pull</code> sequence is the habit that stops surprise merges.</p>
+
+  <h3>Pushing and upstream tracking</h3>
+<pre><code>git push                          # once upstream is set
+git push -u origin main           # first push: sets upstream for later pushes
+git push origin feature/forecast  # push a branch without setting upstream
+git push --force-with-lease       # rewrite remote history, abort if someone else pushed
+git push origin --delete old-branch</code></pre>
+  <div class="note"><p>Use <code>--force-with-lease</code>, never bare <code>--force</code>. Both rewrite the remote branch, but <code>--force-with-lease</code> checks that the remote is still where you last saw it and refuses if a colleague pushed in between &mdash; bare <code>--force</code> silently destroys their commits.</p></div>
+
+  <h3>Remote-tracking branches</h3>
+  <p><code>origin/main</code> is a local, read-only bookmark recording where <code>main</code> was on the server at your last fetch. It does not update on its own, which is why <code>git status</code> can claim you are up to date when the server has moved on &mdash; it is comparing against a possibly stale <code>origin/main</code>.</p>
+<pre><code>git branch -vv                             # local branches, upstreams, ahead/behind counts
+git rev-list --left-right --count main...origin/main   # "3  2" = 3 local-only, 2 remote-only
+git branch --set-upstream-to=origin/main main          # attach a branch to a remote one</code></pre>
+</section>
+
+<section id="undo">
+  <h2>6. Undoing things safely</h2>
+  <p>Pick by what you want to undo, not by which command you half-remember. Only two entries here can lose work: <code>restore</code> and <code>reset --hard</code>.</p>
+  <table>
+    <thead><tr><th>What you want to undo</th><th>Command</th><th>Loses work?</th></tr></thead>
+    <tbody>
+      <tr><td>Edits to a file, not yet staged</td><td><code>git restore &lt;path&gt;</code></td><td><span class="danger">Yes</span> &mdash; gone for good</td></tr>
+      <tr><td>Every uncommitted edit in the tree</td><td><code>git restore .</code></td><td><span class="danger">Yes</span></td></tr>
+      <tr><td>A staged file, keeping the edits</td><td><code>git restore --staged &lt;path&gt;</code></td><td>No</td></tr>
+      <tr><td>The last commit, keeping changes staged</td><td><code>git reset --soft HEAD~1</code></td><td>No</td></tr>
+      <tr><td>The last commit, keeping changes unstaged</td><td><code>git reset HEAD~1</code></td><td>No</td></tr>
+      <tr><td>The last commit and its changes entirely</td><td><code>git reset --hard HEAD~1</code></td><td><span class="danger">Yes</span></td></tr>
+      <tr><td>A commit that is already pushed</td><td><code>git revert &lt;sha&gt;</code></td><td>No &mdash; adds an inverse commit</td></tr>
+      <tr><td>Just the last commit&rsquo;s message</td><td><code>git commit --amend</code></td><td>No</td></tr>
+      <tr><td>Nothing &mdash; set work aside for later</td><td><code>git stash</code></td><td>No</td></tr>
+    </tbody>
+  </table>
+
+  <h3>The three modes of reset</h3>
+  <p>All three move the branch pointer; they differ only in how much they drag with it:</p>
+  <ul>
+    <li><code>--soft</code> &mdash; moves the pointer. Staging area and files untouched, so the commit&rsquo;s changes sit staged, ready to recommit.</li>
+    <li><code>--mixed</code> (the default) &mdash; moves the pointer and clears the staging area. Your files keep every change.</li>
+    <li><code>--hard</code> &mdash; moves the pointer, clears staging, <strong>and overwrites your files</strong>. This is the only destructive one.</li>
+  </ul>
+
+  <h3>revert vs reset</h3>
+  <p>Use <code>revert</code> for anything already pushed. It does not delete the bad commit; it adds a new commit that undoes it, so the history everyone else already pulled stays valid. <code>reset</code> rewrites history and is only safe on commits that never left your machine.</p>
+<pre><code>git revert &lt;sha&gt;           # one commit
+git revert &lt;old&gt;..&lt;new&gt;    # a range
+git revert -n &lt;sha&gt;        # stage the reversal without committing yet</code></pre>
+
+  <h3>Stashing</h3>
+<pre><code>git stash push -m "half-done forecast tweak"
+git stash list                  # stash@{0} is the most recent
+git stash show -p stash@{0}     # what is in it
+git stash pop                   # re-apply the newest and drop it
+git stash apply stash@{1}       # re-apply an older one, keep it in the list
+git stash push -u               # include untracked files -- skipped by default
+git stash drop stash@{0}</code></pre>
+  <p><code>git stash push -u</code> matters more than it looks: without <code>-u</code>, brand-new files stay in your working tree and follow you onto whatever branch you switch to.</p>
+</section>
+
+<section id="debug">
+  <h2>7. Debugging and inspecting</h2>
+  <p>When Git behaves unexpectedly, the fix is almost always to find out what state the repository is actually in rather than to try another command. Everything below is read-only and safe to run at any time.</p>
+
+  <h3>What changed</h3>
+<pre><code>git diff                      # working tree vs staging area -- what is NOT staged
+git diff --staged             # staging area vs last commit -- what IS staged
+git diff HEAD                 # everything uncommitted, staged or not
+git diff main..feature        # the tip-to-tip difference between two branches
+git diff --stat               # just filenames and +/- line counts
+git diff --name-only          # filenames alone, good for piping
+git diff --check              # flag whitespace errors before committing</code></pre>
+
+  <h3>What is in a commit, tree or branch</h3>
+<pre><code>git show &lt;sha&gt;                # message + full diff of one commit
+git show &lt;sha&gt;:path/to/file   # that file as of that commit
+git show --stat &lt;sha&gt;         # which files it touched, no diff
+git ls-tree -r --name-only HEAD   # every tracked file at a commit
+git ls-files                  # every file in the staging area
+git cat-file -p &lt;sha&gt;         # the raw object: commit, tree or blob</code></pre>
+
+  <h3>Who and when</h3>
+<pre><code>git blame path/to/file        # last commit to touch each line
+git blame -L 40,60 &lt;path&gt;     # only lines 40-60
+git log -S "def forecast"     # commits that added or removed that string
+git log -G "regex"            # same, but a regex over the diff
+git log --follow &lt;path&gt;       # history across renames
+git shortlog -sn              # commit counts per author</code></pre>
+  <p><code>git log -S</code> is the one most people never learn and then use constantly: it answers &ldquo;when did this line of code appear?&rdquo; directly.</p>
+
+  <h3>The state of the repository itself</h3>
+<pre><code>git status --short --branch   # compact status plus ahead/behind
+git rev-parse HEAD            # the full sha HEAD points to
+git rev-parse --abbrev-ref HEAD      # the current branch name
+git rev-list --count HEAD     # how many commits are in this history
+git rev-list --max-parents=0 --all   # every ROOT commit
+git merge-base main feature   # the commit two branches diverged from
+git fsck                      # check object integrity, list dangling objects
+git count-objects -vH         # repository size on disk</code></pre>
+  <div class="note"><p>That <code>rev-list --max-parents=0 --all</code> line is the direct test for the &ldquo;unrelated histories&rdquo; error: two hashes back means two independent history trees.</p></div>
+
+  <h3>The reflog &mdash; your safety net</h3>
+  <p>Every move of <code>HEAD</code> is logged locally for 90 days, including the ones that &ldquo;lost&rdquo; commits. A bad <code>reset --hard</code>, a deleted branch, a botched rebase: all recoverable from here.</p>
+<pre><code>git reflog                    # every position HEAD has held, newest first
+git reflog show main          # just one branch of movements
+git reset --hard HEAD@{2}     # jump back to where you were two moves ago
+git switch -c rescue &lt;sha&gt;    # resurrect a lost commit onto a new branch</code></pre>
+
+  <h3>Finding the commit that broke something</h3>
+<pre><code>git bisect start
+git bisect bad                # the current commit is broken
+git bisect good &lt;old-sha&gt;     # this one worked
+# Git checks out the midpoint; test, then mark it good or bad
+git bisect reset              # done -- back to where you started
+
+git bisect run pytest -q      # or automate it: Git finds the culprit unattended</code></pre>
+  <p>Bisect is a binary search, so it finds the guilty commit in about log&#8322;(n) tests &mdash; ten steps across a thousand commits.</p>
+</section>
+
+<section id="errors">
+  <h2>8. Common errors decoded</h2>
+
+  <h3><code>fatal: refusing to merge unrelated histories</code></h3>
+  <p>The local repo and the remote were started separately, so they share no common ancestor and Git cannot compute a merge base. Confirm it:</p>
+<pre><code>git rev-list --max-parents=0 --all   # two hashes = two independent histories</code></pre>
+  <p>This happens when you create the repo on GitHub <em>with</em> a README and also run <code>git init</code> locally, then connect them. Two fixes:</p>
+<pre><code># The remote holds nothing you need (a stub README) -- replace it with your history:
+git push -u origin main --force-with-lease
+
+# You want both histories joined -- expect a conflict in README.md:
+git pull origin main --allow-unrelated-histories</code></pre>
+  <p>Avoid it next time by creating the GitHub repo empty, or by cloning it instead of running <code>git init</code>.</p>
+
+  <h3><code>! [rejected] ... (non-fast-forward)</code></h3>
+  <p>The remote has commits you do not. Git refuses to push because that would discard them. Fetch and integrate first:</p>
+<pre><code>git fetch origin
+git log --oneline HEAD..origin/main   # see what you are missing
+git pull                              # or: git rebase origin/main
+git push</code></pre>
+  <p>Only reach for <code>--force-with-lease</code> if you genuinely intend to overwrite the remote branch.</p>
+
+  <h3><code>You are in 'detached HEAD' state</code></h3>
+  <p><code>HEAD</code> points at a commit instead of a branch &mdash; usually after <code>git checkout &lt;sha&gt;</code> or a tag. Commits you make here belong to no branch and become unreachable when you leave.</p>
+<pre><code>git switch -c my-branch   # keep the work: attach a branch to it
+git switch main           # discard it and go back</code></pre>
+  <p>Already left and lost a commit? <code>git reflog</code> still lists it.</p>
+
+  <h3><code>error: Your local changes would be overwritten by merge</code></h3>
+  <p>A pull wants to touch files you have edited. Commit them, or set them aside:</p>
+<pre><code>git stash push -u
+git pull
+git stash pop</code></pre>
+
+  <h3><code>warning: LF will be replaced by CRLF</code></h3>
+  <p>A Windows line-ending notice, not an error. It means Git will normalise the file. Setting <code>core.autocrlf true</code> plus a <code>.gitattributes</code> with <code>* text=auto</code> silences it and keeps the repo consistent across machines.</p>
+
+  <h3><code>fatal: Authentication failed</code></h3>
+  <p>GitHub stopped accepting account passwords over HTTPS in 2021. Use a personal access token as the password, or switch to SSH:</p>
+<pre><code>git remote set-url origin git@github.com:you/repo.git
+ssh -T git@github.com    # verify the key works</code></pre>
+  <p>On Windows, <code>git config --global credential.helper manager</code> stores the token in Credential Manager so you enter it once.</p>
+
+  <h3><code>fatal: not a git repository</code></h3>
+  <p>You are outside a repository, or above the folder holding <code>.git/</code>. Check where Git thinks it is:</p>
+<pre><code>git rev-parse --show-toplevel   # the repository root, or an error if there is none</code></pre>
+
+  <h3>Nothing works and you want the truth</h3>
+  <p>Run the three lines that describe the whole situation with no interpretation:</p>
+<pre><code>git status --short --branch
+git log --oneline --graph --decorate --all -20
+git remote -v</code></pre>
+</section>
+
+<footer>
+  <p>Git Handbook &middot; powertrading_forecast &middot; commands verified against Git 2.43+</p>
+</footer>
+
+</main>
+</div>
+</div>
+</body>
+</html>

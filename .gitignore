@@ -1,3 +1,10 @@
 .venv
 .env
 .gitignore
+
+# Validation run summaries (written by src/2_validation/5_gx_validate_local.py)
+run_summary_*.json
+
+# Data folder (contents managed by DVC) - keep only the .dvc pointer files
+/data/*
+!/data/*.dvc

@@ -1,0 +1,69 @@
+{
+  "expectation_suite_name": "dam_suite",
+  "expectations": [
+    {
+      "expectation_type": "expect_table_columns_to_match_set",
+      "kwargs": {
+        "column_set": [
+          "Datetime",
+          "Purchase Bid (MW)",
+          "Sell Bid (MW)",
+          "MCV (MW)",
+          "Final Scheduled Volume (MW)",
+          "MCP (Rs/MWh) *",
+          "Session ID",
+          "ingestion_date",
+          "source_file",
+          "pipeline_run_id"
+        ],
+        "exact_match": false
+      }
+    },
+    {
+      "expectation_type": "expect_table_row_count_to_be_between",
+      "kwargs": { "min_value": 1 }
+    },
+    {
+      "expectation_type": "expect_column_values_to_not_be_null",
+      "kwargs": { "column": "Datetime" }
+    },
+    {
+      "expectation_type": "expect_column_values_to_not_be_null",
+      "kwargs": { "column": "Session ID" }
+    },
+    {
+      "expectation_type": "expect_column_values_to_not_be_null",
+      "kwargs": { "column": "MCP (Rs/MWh) *" }
+    },
+    {
+      "expectation_type": "expect_compound_columns_to_be_unique",
+      "kwargs": { "column_list": ["Datetime", "Session ID"] }
+    },
+    {
+      "expectation_type": "expect_column_values_to_be_between",
+      "kwargs": { "column": "Session ID", "min_value": 1, "max_value": 96 }
+    },
+    {
+      "expectation_type": "expect_column_values_to_be_between",
+      "kwargs": { "column": "MCP (Rs/MWh) *", "min_value": 0, "max_value": 20000 }
+    },
+    {
+      "expectation_type": "expect_column_values_to_be_between",
+      "kwargs": { "column": "Purchase Bid (MW)", "min_value": 0 }
+    },
+    {
+      "expectation_type": "expect_column_values_to_be_between",
+      "kwargs": { "column": "Sell Bid (MW)", "min_value": 0 }
+    },
+    {
+      "expectation_type": "expect_column_values_to_be_between",
+      "kwargs": { "column": "MCV (MW)", "min_value": 0 }
+    },
+    {
+      "expectation_type": "expect_column_values_to_be_between",
+      "kwargs": { "column": "Final Scheduled Volume (MW)", "min_value": 0 }
+    }
+  ],
+  "evaluation_parameters": {},
+  "meta": { "great_expectations_version": "0.17.22" }
+}

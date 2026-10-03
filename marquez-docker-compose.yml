@@ -1,0 +1,73 @@
+# Standalone Marquez (data lineage) stack — self-contained, isolated from the app compose.
+#
+# THE BUG THIS FIXES:
+#   The marquez image entrypoint builds its DB connection from POSTGRES_* env vars and
+#   defaults POSTGRES_HOST to "postgres". The main app's compose set MARQUEZ_DB_* (ignored)
+#   and also has a service literally named "postgres", so marquez-api connected to the app's
+#   database as user "marquez" -> "password authentication failed for user marquez".
+#   Here we set POSTGRES_HOST explicitly and make "marquez" the primary Postgres user, so no
+#   init script is needed and there is no name collision.
+#
+# USAGE:
+#   docker compose -f marquez-docker-compose.yml up -d
+#   open http://localhost:3001        # lineage UI   (API: http://localhost:5002)
+#   docker compose -f marquez-docker-compose.yml down            # add -v to wipe the db
+
+name: marquez-lineage
+
+services:
+  db:
+    image: postgres:14
+    container_name: marquez-db
+    # the marquez image connects to host "postgres" (ignores POSTGRES_HOST), so alias the db as that
+    networks:
+      default:
+        aliases:
+          - postgres
+    environment:
+      - POSTGRES_USER=marquez
+      - POSTGRES_PASSWORD=marquez
+      - POSTGRES_DB=marquez
+    ports:
+      - "5433:5432"
+    volumes:
+      - marquez_db:/var/lib/postgresql/data
+    healthcheck:
+      test: ["CMD-SHELL", "pg_isready -U marquez -d marquez"]
+      interval: 10s
+      timeout: 5s
+      retries: 5
+      start_period: 10s
+
+  api:
+    image: marquezproject/marquez:0.49.0
+    container_name: marquez-api
+    depends_on:
+      db:
+        condition: service_healthy
+    environment:
+      - POSTGRES_HOST=db          # <- the fix: point at THIS stack's db (not the app's "postgres")
+      - POSTGRES_PORT=5432
+      - POSTGRES_DB=marquez
+      - POSTGRES_USER=marquez
+      - POSTGRES_PASSWORD=marquez
+      - MARQUEZ_PORT=5002
+      - MARQUEZ_ADMIN_PORT=5003
+    ports:
+      - "5002:5002"
+      - "5003:5003"
+    # use the image's default entrypoint; depends_on (service_healthy) handles DB ordering
+
+  web:
+    image: marquezproject/marquez-web:0.49.0
+    container_name: marquez-web
+    depends_on:
+      - api
+    environment:
+      - MARQUEZ_HOST=api
+      - MARQUEZ_PORT=5002
+    ports:
+      - "3001:3000"
+
+volumes:
+  marquez_db:

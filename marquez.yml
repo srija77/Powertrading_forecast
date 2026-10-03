@@ -1,0 +1,5 @@
+db:
+  driverClass: org.postgresql.Driver
+  url: jdbc:postgresql://marquez-db:5432/marquez_db
+  user: marquez
+  password: marquez
