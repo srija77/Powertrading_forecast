@@ -43,7 +43,7 @@ services:
   mlflow:
     build:
       context: .
-      dockerfile: Dockerfile.mlflow
+      dockerfile: Dockerfile.train
     container_name: mlflow
     environment:
       - MLFLOW_ALLOWED_HOSTS=all
