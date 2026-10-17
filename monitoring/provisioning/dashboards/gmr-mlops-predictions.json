@@ -1,0 +1,88 @@
+{
+  "uid": "gmr-mlops-predictions",
+  "title": "Energy Market Forecasting MLOps — Predictions & Drift",
+  "tags": ["energy-market", "mlops", "predictions"],
+  "timezone": "browser",
+  "editable": true,
+  "refresh": "5s",
+  "time": { "from": "now-15m", "to": "now" },
+  "schemaVersion": 39,
+  "version": 1,
+  "panels": [
+    {
+      "id": 1,
+      "title": "Drift Detected",
+      "type": "stat",
+      "gridPos": { "h": 4, "w": 6, "x": 0, "y": 0 },
+      "targets": [ { "expr": "drift_detected", "legendFormat": "drift" } ],
+      "fieldConfig": {
+        "defaults": {
+          "mappings": [
+            { "type": "value", "options": { "0": { "text": "NO DRIFT", "color": "green" } } },
+            { "type": "value", "options": { "1": { "text": "DRIFT", "color": "red" } } }
+          ],
+          "thresholds": { "mode": "absolute", "steps": [ { "color": "green", "value": null }, { "color": "red", "value": 1 } ] }
+        }
+      }
+    },
+    {
+      "id": 2,
+      "title": "Predictions/s",
+      "type": "stat",
+      "gridPos": { "h": 4, "w": 6, "x": 6, "y": 0 },
+      "targets": [ { "expr": "rate(inference_requests_total[5m])", "legendFormat": "pred/s" } ],
+      "fieldConfig": { "defaults": { "unit": "reqps", "thresholds": { "mode": "absolute", "steps": [ { "color": "blue", "value": null } ] } } }
+    },
+    {
+      "id": 3,
+      "title": "Median Predicted Price (₹/MWh)",
+      "type": "stat",
+      "gridPos": { "h": 4, "w": 6, "x": 12, "y": 0 },
+      "targets": [ { "expr": "histogram_quantile(0.5, rate(prediction_value_bucket[5m]))", "legendFormat": "P50" } ],
+      "fieldConfig": { "defaults": { "unit": "short", "decimals": 0, "thresholds": { "mode": "absolute", "steps": [ { "color": "purple", "value": null } ] } } }
+    },
+    {
+      "id": 4,
+      "title": "P95 Latency (ms)",
+      "type": "stat",
+      "gridPos": { "h": 4, "w": 6, "x": 18, "y": 0 },
+      "targets": [ { "expr": "1000 * histogram_quantile(0.95, rate(inference_latency_seconds_bucket[5m]))", "legendFormat": "P95" } ],
+      "fieldConfig": { "defaults": { "unit": "ms", "thresholds": { "mode": "absolute", "steps": [ { "color": "green", "value": null }, { "color": "yellow", "value": 200 }, { "color": "red", "value": 500 } ] } } }
+    },
+    {
+      "id": 5,
+      "title": "Predicted Price Distribution (P25 / P50 / P75)",
+      "type": "timeseries",
+      "gridPos": { "h": 8, "w": 12, "x": 0, "y": 4 },
+      "targets": [
+        { "expr": "histogram_quantile(0.25, rate(prediction_value_bucket[5m]))", "legendFormat": "P25" },
+        { "expr": "histogram_quantile(0.50, rate(prediction_value_bucket[5m]))", "legendFormat": "P50" },
+        { "expr": "histogram_quantile(0.75, rate(prediction_value_bucket[5m]))", "legendFormat": "P75" }
+      ],
+      "fieldConfig": { "defaults": { "unit": "short", "custom": { "drawStyle": "line", "lineWidth": 2, "fillOpacity": 10, "showPoints": "auto" } } }
+    },
+    {
+      "id": 6,
+      "title": "Inference Latency (P50 / P95 / P99)",
+      "type": "timeseries",
+      "gridPos": { "h": 8, "w": 12, "x": 12, "y": 4 },
+      "targets": [
+        { "expr": "1000 * histogram_quantile(0.50, rate(inference_latency_seconds_bucket[5m]))", "legendFormat": "P50" },
+        { "expr": "1000 * histogram_quantile(0.95, rate(inference_latency_seconds_bucket[5m]))", "legendFormat": "P95" },
+        { "expr": "1000 * histogram_quantile(0.99, rate(inference_latency_seconds_bucket[5m]))", "legendFormat": "P99" }
+      ],
+      "fieldConfig": { "defaults": { "unit": "ms", "custom": { "drawStyle": "line", "lineWidth": 2, "fillOpacity": 10, "showPoints": "auto" } } }
+    },
+    {
+      "id": 7,
+      "title": "Cumulative Predictions & Errors",
+      "type": "timeseries",
+      "gridPos": { "h": 8, "w": 24, "x": 0, "y": 12 },
+      "targets": [
+        { "expr": "inference_requests_total", "legendFormat": "requests" },
+        { "expr": "inference_errors_total", "legendFormat": "errors" }
+      ],
+      "fieldConfig": { "defaults": { "unit": "short", "custom": { "drawStyle": "line", "lineWidth": 2, "fillOpacity": 10, "showPoints": "never" } } }
+    }
+  ]
+}

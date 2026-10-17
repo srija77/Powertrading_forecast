@@ -1,0 +1,40 @@
+# =============================================================================
+# One-shot training container
+# =============================================================================
+# Usage:
+#   docker compose -f docker-compose.train.yml up train
+#   # MLflow UI stays alive at http://localhost:5000 after training completes
+# =============================================================================
+
+services:
+  train:
+    build:
+      context: .
+      dockerfile: Dockerfile.train
+    container_name: gmr-train
+    entrypoint: ["bash", "src/4_training/train-entrypoint.sh"]
+    environment:
+      - MLFLOW_TRACKING_URI=http://mlflow:5000
+    volumes:
+      - mlruns:/mlruns
+      - ./src:/app/src:ro
+      - ./my_feature_store:/app/my_feature_store:ro
+      - ./models:/app/models
+      - ./metrics.json:/app/metrics.json
+      - ./data/features:/app/data/features:ro
+      - ./app_config:/app/app_config:ro
+    deploy:
+      resources:
+        limits:
+          memory: 4g
+          cpus: "2"
+
+volumes:
+  mlruns:
+    name: my-mlops-project_mlruns
+    external: true
+
+networks:
+  default:
+    name: mlops-stack
+    external: true

@@ -1,0 +1,577 @@
+<!doctype html>
+<html lang="en">
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1">
+  <title>Energy Market Forecasting</title>
+  <style>
+    * { box-sizing: border-box; margin: 0; padding: 0; }
+    body { font-family: 'Segoe UI', system-ui, sans-serif; background: #f0f2f5; color: #1a1a2e; }
+
+    /* Header */
+    .header { background: linear-gradient(135deg, #1a1a2e, #16213e); color: #fff; padding: 1.5rem 2rem; }
+    .header h1 { font-size: 1.5rem; font-weight: 600; }
+    .header p { color: #94a3b8; font-size: 0.85rem; margin-top: 0.25rem; }
+
+    /* Layout */
+    .container { max-width: 1200px; margin: 0 auto; padding: 1.5rem; }
+    .grid { display: grid; grid-template-columns: 1fr 1fr; gap: 1.5rem; }
+    @media (max-width: 900px) { .grid { grid-template-columns: 1fr; } }
+
+    /* Cards */
+    .card { background: #fff; border-radius: 10px; padding: 1.25rem; box-shadow: 0 1px 3px rgba(0,0,0,0.08); }
+    .card h2 { font-size: 1rem; font-weight: 600; color: #1a1a2e; margin-bottom: 1rem; padding-bottom: 0.5rem; border-bottom: 2px solid #e2e8f0; }
+    .full-width { grid-column: 1 / -1; }
+
+    /* Model info bar */
+    .model-bar { display: grid; grid-template-columns: repeat(auto-fit, minmax(140px, 1fr)); gap: 1rem; margin-bottom: 1.5rem; }
+    .stat-box { background: #fff; border-radius: 10px; padding: 1rem; text-align: center; box-shadow: 0 1px 3px rgba(0,0,0,0.08); }
+    .stat-box .label { font-size: 0.7rem; text-transform: uppercase; letter-spacing: 0.05em; color: #64748b; }
+    .stat-box .value { font-size: 1.4rem; font-weight: 700; color: #1a1a2e; margin-top: 0.25rem; }
+    .stat-box.active .value { color: #059669; }
+
+    /* Tabs */
+    .tabs { display: flex; gap: 0; margin-bottom: 1.5rem; }
+    .tab { padding: 0.75rem 1.5rem; background: #fff; border: 2px solid #e2e8f0; cursor: pointer; font-weight: 600; font-size: 0.9rem; color: #64748b; transition: all 0.2s; }
+    .tab:first-child { border-radius: 8px 0 0 8px; }
+    .tab:last-child { border-radius: 0 8px 8px 0; }
+    .tab.active { background: #1a1a2e; color: #fff; border-color: #1a1a2e; }
+    .tab-content { display: none; }
+    .tab-content.active { display: block; }
+
+    /* Feature groups */
+    .group-title { font-size: 0.8rem; font-weight: 600; text-transform: uppercase; letter-spacing: 0.04em; color: #475569; margin: 0.75rem 0 0.5rem; }
+    .group-title:first-child { margin-top: 0; }
+    .feature-grid { display: grid; grid-template-columns: repeat(auto-fill, minmax(180px, 1fr)); gap: 0.5rem; }
+    .field label { display: block; font-size: 0.72rem; color: #64748b; margin-bottom: 2px; }
+    .field input { width: 100%; padding: 0.4rem 0.5rem; border: 1px solid #e2e8f0; border-radius: 6px; font-size: 0.85rem; transition: border-color 0.2s; }
+    .field input:focus { outline: none; border-color: #3b82f6; box-shadow: 0 0 0 3px rgba(59,130,246,0.1); }
+
+    /* Button */
+    .btn { display: block; width: 100%; padding: 0.75rem; margin-top: 1rem; background: linear-gradient(135deg, #1a1a2e, #16213e); color: #fff; border: none; border-radius: 8px; font-size: 0.95rem; font-weight: 600; cursor: pointer; transition: opacity 0.2s; }
+    .btn:hover { opacity: 0.9; }
+    .btn:disabled { opacity: 0.5; cursor: not-allowed; }
+    .btn-secondary { background: linear-gradient(135deg, #059669, #047857); }
+
+    /* Result */
+    .result-box { margin-top: 1rem; padding: 1rem; background: #f8fafc; border-radius: 8px; text-align: center; min-height: 60px; display: flex; align-items: center; justify-content: center; }
+    .result-box .price { font-size: 2rem; font-weight: 700; color: #059669; }
+    .result-box .unit { font-size: 0.85rem; color: #64748b; margin-left: 0.25rem; }
+    .result-box .meta { font-size: 0.75rem; color: #94a3b8; margin-top: 0.25rem; }
+    .result-content { text-align: center; }
+
+    /* Upload area */
+    .upload-zone { border: 2px dashed #cbd5e1; border-radius: 10px; padding: 2rem; text-align: center; cursor: pointer; transition: all 0.2s; background: #f8fafc; }
+    .upload-zone:hover, .upload-zone.dragover { border-color: #3b82f6; background: #eff6ff; }
+    .upload-zone .icon { font-size: 2.5rem; margin-bottom: 0.5rem; }
+    .upload-zone .text { font-size: 0.9rem; color: #64748b; }
+    .upload-zone .filename { font-size: 0.85rem; color: #059669; font-weight: 600; margin-top: 0.5rem; }
+    .upload-zone input[type="file"] { display: none; }
+
+    /* Batch metrics bar */
+    .batch-metrics { display: grid; grid-template-columns: repeat(auto-fit, minmax(120px, 1fr)); gap: 0.75rem; margin: 1rem 0; }
+    .batch-stat { background: #f8fafc; border-radius: 8px; padding: 0.75rem; text-align: center; border: 1px solid #e2e8f0; }
+    .batch-stat .label { font-size: 0.65rem; text-transform: uppercase; color: #64748b; letter-spacing: 0.04em; }
+    .batch-stat .value { font-size: 1.2rem; font-weight: 700; color: #1a1a2e; margin-top: 0.15rem; }
+    .batch-stat .value.good { color: #059669; }
+
+    /* Results table */
+    table { width: 100%; border-collapse: collapse; font-size: 0.85rem; }
+    th { text-align: left; padding: 0.6rem 0.5rem; color: #64748b; font-weight: 600; font-size: 0.72rem; text-transform: uppercase; letter-spacing: 0.04em; border-bottom: 2px solid #e2e8f0; position: sticky; top: 0; background: #fff; }
+    td { padding: 0.6rem 0.5rem; border-bottom: 1px solid #f1f5f9; }
+    tr:hover td { background: #f8fafc; }
+    .rank { display: inline-block; width: 22px; height: 22px; line-height: 22px; text-align: center; border-radius: 50%; font-size: 0.72rem; font-weight: 700; }
+    .rank-1 { background: #fef3c7; color: #92400e; }
+    .rank-2 { background: #e2e8f0; color: #475569; }
+    .rank-3 { background: #fed7aa; color: #9a3412; }
+    .error-pos { color: #ef4444; }
+    .error-neg { color: #059669; }
+    .table-scroll { max-height: 400px; overflow-y: auto; }
+
+    /* History */
+    .history-list { max-height: 280px; overflow-y: auto; }
+    .history-item { display: flex; justify-content: space-between; align-items: center; padding: 0.5rem 0; border-bottom: 1px solid #f1f5f9; font-size: 0.85rem; }
+    .history-item .time { color: #94a3b8; font-size: 0.75rem; }
+    .history-item .pred-val { font-weight: 600; color: #1a1a2e; }
+    .history-item .lat { color: #94a3b8; font-size: 0.72rem; }
+    .empty { color: #94a3b8; text-align: center; padding: 2rem; font-size: 0.85rem; }
+
+    /* Progress */
+    .progress-bar { height: 4px; background: #e2e8f0; border-radius: 2px; overflow: hidden; margin-top: 1rem; display: none; }
+    .progress-bar .fill { height: 100%; background: linear-gradient(90deg, #3b82f6, #059669); width: 0%; animation: progress 2s ease-in-out forwards; }
+    @keyframes progress { to { width: 100%; } }
+  </style>
+</head>
+<body>
+
+  <div class="header">
+    <h1>Energy Market Forecasting v15</h1>
+    <p>DAM MCP Price Prediction &mdash; Real-time Inference Dashboard</p>
+  </div>
+
+  <div class="container">
+
+    <!-- Model stats bar -->
+    <div class="model-bar">
+      <div class="stat-box active">
+        <div class="label">Active Model</div>
+        <div class="value">{{ model_info.name }}</div>
+      </div>
+      <div class="stat-box">
+        <div class="label">RMSE</div>
+        <div class="value">{{ model_info.rmse }}</div>
+      </div>
+      <div class="stat-box">
+        <div class="label">MAE</div>
+        <div class="value">{{ model_info.mae }}</div>
+      </div>
+      <div class="stat-box">
+        <div class="label">MAPE</div>
+        <div class="value">{{ model_info.mape }}%</div>
+      </div>
+      <div class="stat-box">
+        <div class="label">Run ID</div>
+        <div class="value" style="font-size:1rem;">{{ model_info.run_id }}</div>
+      </div>
+    </div>
+
+    <!-- Tabs -->
+    <div class="tabs">
+      <div class="tab active" onclick="switchTab('batch')">Batch Predict (CSV Upload)</div>
+      <div class="tab" onclick="switchTab('single')">Single Prediction</div>
+    </div>
+
+    <!-- ============================================================ -->
+    <!-- TAB 1: Batch Predict (CSV Upload) — default -->
+    <!-- ============================================================ -->
+    <div class="tab-content active" id="tab-batch">
+      <div class="card full-width">
+        <h2>Upload CSV for Batch Prediction</h2>
+        <p style="font-size:0.82rem; color:#64748b; margin-bottom:1rem;">
+          Upload a CSV file with feature columns (e.g. <strong>val.csv</strong>).
+          If a <strong>dam_mcp</strong> column is present, accuracy metrics (RMSE, MAE, MAPE) will be computed automatically.
+        </p>
+
+        <div class="upload-zone" id="upload-zone" onclick="document.getElementById('csv-file').click()">
+          <div class="icon">&#128196;</div>
+          <div class="text">Click to select or drag &amp; drop a CSV file</div>
+          <div class="filename" id="file-label"></div>
+          <input type="file" id="csv-file" accept=".csv">
+        </div>
+
+        <button class="btn btn-secondary" id="batch-btn" onclick="runBatch()" disabled>
+          Run Batch Prediction
+        </button>
+        <div class="progress-bar" id="batch-progress"><div class="fill"></div></div>
+
+        <!-- Batch results -->
+        <div id="batch-results" style="display:none; margin-top:1.5rem;">
+          <div class="batch-metrics" id="batch-metrics"></div>
+          <div id="drift-details" style="display:none;"></div>
+          <div style="display:flex; justify-content:space-between; align-items:center; margin-bottom:0.5rem;">
+            <h2 style="border:none; padding:0; margin:0;">Prediction Results</h2>
+            <button class="btn" id="download-btn" style="width:auto; margin:0; padding:0.5rem 1.25rem; font-size:0.82rem;" onclick="downloadCSV()">
+              Download Full CSV
+            </button>
+          </div>
+          <div class="table-scroll">
+            <table>
+              <thead id="batch-thead"></thead>
+              <tbody id="batch-tbody"></tbody>
+            </table>
+          </div>
+        </div>
+      </div>
+    </div>
+
+    <!-- ============================================================ -->
+    <!-- TAB 2: Single Prediction -->
+    <!-- ============================================================ -->
+    <div class="tab-content" id="tab-single">
+      <div class="grid">
+        <div class="card full-width">
+          <h2>Predict DAM MCP Price</h2>
+
+          <!-- Online store: predict by block_id (Feast online store) -->
+          <div class="group-title">Predict by block (Feast online store)</div>
+          <div style="display:flex; gap:0.75rem; align-items:flex-end; margin-bottom:1.25rem;">
+            <div class="field" style="flex:1;">
+              <label for="block-id">block_id &mdash; 15-min slot, e.g. 2025-03-20T18:00</label>
+              <input type="text" id="block-id" name="block_id" placeholder="2025-03-20T18:00" value="2025-03-20T18:00">
+            </div>
+            <button type="button" class="btn" id="block-btn" style="margin:0; width:auto; padding:0.6rem 1.25rem;">Predict from Online Store</button>
+          </div>
+
+          <div class="group-title">Or enter feature values manually</div>
+          <form id="predict-form">
+            {% for group_name, features in feature_groups.items() %}
+              <div class="group-title">{{ group_name }}</div>
+              <div class="feature-grid">
+                {% for feat in features %}
+                  <div class="field">
+                    <label for="{{ feat }}">{{ feat }}</label>
+                    <input type="number" step="any" id="{{ feat }}" name="{{ feat }}" value="{{ feature_defaults.get(feat, 0) }}" required>
+                  </div>
+                {% endfor %}
+              </div>
+            {% endfor %}
+            <div style="display:flex; gap:0.75rem; margin-top:1rem;">
+              <button type="submit" class="btn" id="predict-btn" style="margin:0;">Run Prediction</button>
+              <button type="button" class="btn" style="margin:0; background:linear-gradient(135deg,#64748b,#475569);" onclick="resetDefaults()">Reset to Defaults</button>
+            </div>
+          </form>
+          <div class="result-box" id="result">
+            <div class="result-content">
+              <div style="color:#94a3b8;">Enter features and click predict</div>
+            </div>
+          </div>
+        </div>
+
+        <!-- Leaderboard -->
+        <div class="card">
+          <h2>Model Leaderboard</h2>
+          {% if runs %}
+          <table>
+            <thead>
+              <tr><th>#</th><th>Model</th><th>RMSE</th><th>MAE</th><th>MAPE</th></tr>
+            </thead>
+            <tbody>
+              {% for run in runs %}
+              <tr>
+                <td><span class="rank {% if loop.index <= 3 %}rank-{{ loop.index }}{% endif %}">{{ loop.index }}</span></td>
+                <td><strong>{{ run.name }}</strong></td>
+                <td>{{ run.rmse }}</td>
+                <td>{{ run.mae }}</td>
+                <td>{{ run.mape }}%</td>
+              </tr>
+              {% endfor %}
+            </tbody>
+          </table>
+          {% else %}
+          <div class="empty">No runs found</div>
+          {% endif %}
+        </div>
+
+        <!-- Prediction history -->
+        <div class="card">
+          <h2>Recent Predictions</h2>
+          <div class="history-list" id="history">
+            {% if predictions %}
+              {% for p in predictions %}
+              <div class="history-item">
+                <span class="time">{{ p.time }}</span>
+                <span class="pred-val">&#8377; {{ p.prediction }}</span>
+                <span class="lat">{{ p.latency_ms }}ms</span>
+              </div>
+              {% endfor %}
+            {% else %}
+              <div class="empty">No predictions yet</div>
+            {% endif %}
+          </div>
+        </div>
+      </div>
+    </div>
+
+  </div>
+
+  <script>
+    /* ---- Tab switching ---- */
+    function switchTab(name) {
+      document.querySelectorAll('.tab').forEach(t => t.classList.remove('active'));
+      document.querySelectorAll('.tab-content').forEach(t => t.classList.remove('active'));
+      document.getElementById('tab-' + name).classList.add('active');
+      event.target.classList.add('active');
+    }
+
+    /* ---- File upload handling ---- */
+    const uploadZone = document.getElementById('upload-zone');
+    const fileInput = document.getElementById('csv-file');
+    const fileLabel = document.getElementById('file-label');
+    const batchBtn = document.getElementById('batch-btn');
+    let csvDownloadData = null;
+
+    fileInput.addEventListener('change', () => {
+      if (fileInput.files.length) {
+        const file = fileInput.files[0];
+        fileLabel.textContent = file.name + ' (' + (file.size / 1024).toFixed(1) + ' KB)';
+        batchBtn.disabled = false;
+      }
+    });
+
+    uploadZone.addEventListener('dragover', (e) => { e.preventDefault(); uploadZone.classList.add('dragover'); });
+    uploadZone.addEventListener('dragleave', () => uploadZone.classList.remove('dragover'));
+    uploadZone.addEventListener('drop', (e) => {
+      e.preventDefault();
+      uploadZone.classList.remove('dragover');
+      if (e.dataTransfer.files.length) {
+        fileInput.files = e.dataTransfer.files;
+        const file = e.dataTransfer.files[0];
+        fileLabel.textContent = file.name + ' (' + (file.size / 1024).toFixed(1) + ' KB)';
+        batchBtn.disabled = false;
+      }
+    });
+
+    /* ---- Batch prediction ---- */
+    async function runBatch() {
+      if (!fileInput.files.length) return;
+      batchBtn.disabled = true;
+      batchBtn.textContent = 'Running predictions...';
+      const progress = document.getElementById('batch-progress');
+      progress.style.display = 'block';
+      progress.querySelector('.fill').style.animation = 'none';
+      progress.querySelector('.fill').offsetHeight; // reflow
+      progress.querySelector('.fill').style.animation = 'progress 2s ease-in-out forwards';
+
+      const formData = new FormData();
+      formData.append('file', fileInput.files[0]);
+
+      try {
+        const resp = await fetch('/batch-predict', { method: 'POST', body: formData });
+        const json = await resp.json();
+
+        if (!resp.ok) {
+          alert('Error: ' + json.error);
+          return;
+        }
+
+        csvDownloadData = json.csv_download;
+
+        // Build metrics bar
+        const metricsDiv = document.getElementById('batch-metrics');
+        let metricsHtml = `
+          <div class="batch-stat">
+            <div class="label">Total Rows</div>
+            <div class="value">${json.total_rows}</div>
+          </div>
+          <div class="batch-stat">
+            <div class="label">Model</div>
+            <div class="value good">${json.model}</div>
+          </div>
+          <div class="batch-stat">
+            <div class="label">Latency</div>
+            <div class="value">${json.latency_ms}ms</div>
+          </div>`;
+
+        if (json.metrics) {
+          metricsHtml += `
+            <div class="batch-stat">
+              <div class="label">RMSE</div>
+              <div class="value">${json.metrics.rmse}</div>
+            </div>
+            <div class="batch-stat">
+              <div class="label">MAE</div>
+              <div class="value">${json.metrics.mae}</div>
+            </div>
+            <div class="batch-stat">
+              <div class="label">MAPE</div>
+              <div class="value">${json.metrics.mape}%</div>
+            </div>`;
+        }
+        // Add drift status
+        if (json.drift) {
+          const d = json.drift;
+          const driftColor = d.dataset_drift ? '#ef4444' : '#059669';
+          const driftText = d.dataset_drift ? 'DRIFT DETECTED' : 'No Drift';
+          const driftBg = d.dataset_drift ? '#fef2f2' : '#f0fdf4';
+          const driftBorder = d.dataset_drift ? '#fecaca' : '#bbf7d0';
+          metricsHtml += `
+            <div class="batch-stat" style="background:${driftBg}; border-color:${driftBorder};">
+              <div class="label">Data Drift</div>
+              <div class="value" style="color:${driftColor};">${driftText}</div>
+            </div>
+            <div class="batch-stat">
+              <div class="label">Features Drifted</div>
+              <div class="value">${d.drifted_features_count} / ${d.total_features}</div>
+            </div>`;
+        }
+        metricsDiv.innerHTML = metricsHtml;
+
+        // Show drifted features list if any
+        const driftDiv = document.getElementById('drift-details');
+        if (json.drift && json.drift.drifted_features && json.drift.drifted_features.length > 0) {
+          let driftHtml = '<div style="margin:1rem 0; padding:1rem; background:#fef2f2; border:1px solid #fecaca; border-radius:8px;">';
+          driftHtml += '<strong style="color:#ef4444;">Drifted Features:</strong> ';
+          driftHtml += json.drift.drifted_features.map(f =>
+            `<span style="display:inline-block; background:#fee2e2; color:#991b1b; padding:2px 8px; border-radius:4px; margin:2px; font-size:0.78rem;">${f}</span>`
+          ).join('');
+          driftHtml += '</div>';
+          driftDiv.innerHTML = driftHtml;
+          driftDiv.style.display = 'block';
+        } else {
+          driftDiv.style.display = 'none';
+        }
+
+        // Build results table
+        const thead = document.getElementById('batch-thead');
+        const tbody = document.getElementById('batch-tbody');
+        let headHtml = '<tr><th>Row</th>';
+        if (json.has_actuals) headHtml += '<th>Actual (&#8377;)</th>';
+        headHtml += '<th>Predicted (&#8377;)</th>';
+        if (json.has_actuals) headHtml += '<th>Error (&#8377;)</th>';
+        headHtml += '</tr>';
+        thead.innerHTML = headHtml;
+
+        let bodyHtml = '';
+        for (const row of json.rows) {
+          bodyHtml += `<tr><td>${row.row}</td>`;
+          if (json.has_actuals) bodyHtml += `<td>${row.actual}</td>`;
+          bodyHtml += `<td><strong>${row.predicted}</strong></td>`;
+          if (json.has_actuals) {
+            const cls = row.error >= 0 ? 'error-pos' : 'error-neg';
+            const sign = row.error >= 0 ? '+' : '';
+            bodyHtml += `<td class="${cls}">${sign}${row.error}</td>`;
+          }
+          bodyHtml += '</tr>';
+        }
+        if (json.total_rows > 500) {
+          bodyHtml += `<tr><td colspan="4" style="text-align:center; color:#94a3b8; padding:1rem;">Showing first 500 of ${json.total_rows} rows. Download CSV for full results.</td></tr>`;
+        }
+        tbody.innerHTML = bodyHtml;
+
+        document.getElementById('batch-results').style.display = 'block';
+      } catch (err) {
+        alert('Connection error: ' + err.message);
+      } finally {
+        batchBtn.disabled = false;
+        batchBtn.textContent = 'Run Batch Prediction';
+        progress.style.display = 'none';
+      }
+    }
+
+    /* ---- Download CSV ---- */
+    function downloadCSV() {
+      if (!csvDownloadData) return;
+      const blob = new Blob([csvDownloadData], { type: 'text/csv' });
+      const url = URL.createObjectURL(blob);
+      const a = document.createElement('a');
+      a.href = url;
+      a.download = 'predictions_' + new Date().toISOString().slice(0, 10) + '.csv';
+      a.click();
+      URL.revokeObjectURL(url);
+    }
+
+    /* ---- Reset to defaults ---- */
+    const DEFAULTS = {{ feature_defaults | tojson }};
+    function resetDefaults() {
+      for (const [feat, val] of Object.entries(DEFAULTS)) {
+        const el = document.getElementById(feat);
+        if (el) el.value = val;
+      }
+    }
+
+    /* ---- Single prediction ---- */
+    const form = document.getElementById('predict-form');
+    const resultBox = document.getElementById('result');
+    const historyBox = document.getElementById('history');
+    const btn = document.getElementById('predict-btn');
+
+    form.addEventListener('submit', async (e) => {
+      e.preventDefault();
+      btn.disabled = true;
+      btn.textContent = 'Predicting...';
+      resultBox.innerHTML = '<div class="result-content"><div style="color:#94a3b8;">Processing...</div></div>';
+
+      const formData = new FormData(form);
+      const data = {};
+      for (const [key, val] of formData.entries()) {
+        data[key] = parseFloat(val) || 0;
+      }
+
+      try {
+        const resp = await fetch('/predict', {
+          method: 'POST',
+          headers: { 'Content-Type': 'application/json' },
+          body: JSON.stringify(data),
+        });
+        const json = await resp.json();
+
+        if (resp.ok) {
+          resultBox.innerHTML = `
+            <div class="result-content">
+              <div class="price">&#8377; ${json.prediction}</div>
+              <div class="meta">Model: ${json.model} &bull; Latency: ${json.latency_ms}ms</div>
+            </div>`;
+
+          const empty = historyBox.querySelector('.empty');
+          if (empty) empty.remove();
+          const item = document.createElement('div');
+          item.className = 'history-item';
+          const now = new Date().toLocaleTimeString('en-IN', { hour12: false });
+          item.innerHTML = `<span class="time">${now}</span><span class="pred-val">&#8377; ${json.prediction}</span><span class="lat">${json.latency_ms}ms</span>`;
+          historyBox.prepend(item);
+        } else {
+          resultBox.innerHTML = `<div class="result-content"><div style="color:#ef4444;">${json.error}</div></div>`;
+        }
+      } catch (err) {
+        resultBox.innerHTML = `<div class="result-content"><div style="color:#ef4444;">Connection error: ${err.message}</div></div>`;
+      } finally {
+        btn.disabled = false;
+        btn.textContent = 'Run Prediction';
+      }
+    });
+
+    /* ---- Online prediction by block_id (Feast online store) ---- */
+    const blockBtn = document.getElementById('block-btn');
+    const blockInput = document.getElementById('block-id');
+
+    async function predictByBlock() {
+      const blockId = (blockInput.value || '').trim();
+      if (!blockId) { blockInput.focus(); return; }
+      blockBtn.disabled = true;
+      blockBtn.textContent = 'Predicting...';
+      resultBox.innerHTML = '<div class="result-content"><div style="color:#94a3b8;">Fetching features from online store...</div></div>';
+
+      try {
+        const resp = await fetch('/predict', {
+          method: 'POST',
+          headers: { 'Content-Type': 'application/json' },
+          body: JSON.stringify({ block_id: blockId }),
+        });
+        const json = await resp.json();
+
+        if (resp.ok) {
+          resultBox.innerHTML = `
+            <div class="result-content">
+              <div class="price">&#8377; ${json.prediction}</div>
+              <div class="meta">block ${json.block_id} &bull; Model: ${json.model} &bull; Latency: ${json.latency_ms}ms &bull; via Feast online store</div>
+            </div>`;
+
+          const empty = historyBox.querySelector('.empty');
+          if (empty) empty.remove();
+          const item = document.createElement('div');
+          item.className = 'history-item';
+          const now = new Date().toLocaleTimeString('en-IN', { hour12: false });
+          item.innerHTML = `<span class="time">${now}</span><span class="pred-val">&#8377; ${json.prediction}</span><span class="lat">${json.latency_ms}ms</span>`;
+          historyBox.prepend(item);
+        } else {
+          resultBox.innerHTML = `<div class="result-content"><div style="color:#ef4444;">${json.error}</div></div>`;
+        }
+      } catch (err) {
+        resultBox.innerHTML = `<div class="result-content"><div style="color:#ef4444;">Connection error: ${err.message}</div></div>`;
+      } finally {
+        blockBtn.disabled = false;
+        blockBtn.textContent = 'Predict from Online Store';
+      }
+    }
+
+    blockBtn.addEventListener('click', predictByBlock);
+    blockInput.addEventListener('keydown', (e) => {
+      if (e.key === 'Enter') { e.preventDefault(); predictByBlock(); }
+    });
+  </script>
+</body>
+</html>
+
+
+
+
+
+
+
+
+
+
+
+
+
+

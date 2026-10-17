@@ -1,0 +1,186 @@
+# =============================================================================
+# Energy Market Forecasting MLOps Stack — Production-hardened Docker Compose
+# =============================================================================
+# Usage:
+#   cp .env.example .env        # fill in secrets
+#   docker compose up -d
+#
+# Services: mlflow · app (gunicorn) · prometheus · grafana
+# =============================================================================
+
+services:
+
+  # ---------------------------------------------------------------------------
+  # Postgres — prediction logging store
+  # ---------------------------------------------------------------------------
+  postgres:
+    image: postgres:16-alpine
+    container_name: gmr-postgres
+    environment:
+      - POSTGRES_USER=${POSTGRES_USER:-mlops}
+      - POSTGRES_PASSWORD=${POSTGRES_PASSWORD:-mlops}
+      - POSTGRES_DB=${POSTGRES_DB:-mlops}
+    ports:
+      - "5432:5432"
+    volumes:
+      - postgres_data:/var/lib/postgresql/data
+    restart: unless-stopped
+    healthcheck:
+      test: ["CMD-SHELL", "pg_isready -U ${POSTGRES_USER:-mlops} -d ${POSTGRES_DB:-mlops}"]
+      interval: 10s
+      timeout: 5s
+      retries: 5
+      start_period: 10s
+    deploy:
+      resources:
+        limits:
+          memory: 512m
+          cpus: "0.5"
+
+  # ---------------------------------------------------------------------------
+  # MLflow tracking server
+  # ---------------------------------------------------------------------------
+  mlflow:
+    build:
+      context: .
+      dockerfile: Dockerfile.mlflow
+    container_name: mlflow
+    environment:
+      - MLFLOW_ALLOWED_HOSTS=all
+    command:
+      - mlflow
+      - server
+      - --host=0.0.0.0
+      - --port=5000
+      - --backend-store-uri=sqlite:////mlruns/mlflow.db
+      - --default-artifact-root=mlflow-artifacts:/
+      - --serve-artifacts
+      - --artifacts-destination=/mlruns/artifacts
+      - --allowed-hosts=*
+    ports:
+      - "5000:5000"
+    volumes:
+      - mlruns:/mlruns
+    restart: unless-stopped
+    # Healthcheck so dependent services wait until MLflow is truly ready
+    healthcheck:
+      test: ["CMD", "python", "-c", "import requests; requests.get('http://localhost:5000/health').raise_for_status()"]
+      interval: 10s
+      timeout: 5s
+      retries: 10
+      start_period: 60s
+    deploy:
+      resources:
+        limits:
+          memory: 2g
+          cpus: "1"
+
+  # ---------------------------------------------------------------------------
+  # Flask app — served by Gunicorn (4 workers)
+  # ---------------------------------------------------------------------------
+  app:
+    build: .
+    container_name: gmr-app
+    depends_on:
+      mlflow:
+        condition: service_healthy   # waits for MLflow readiness, not just startup
+      postgres:
+        condition: service_healthy
+    environment:
+      - MLFLOW_TRACKING_URI=http://mlflow:5000
+      - API_KEY=${API_KEY}           # loaded from .env — never hardcode
+      - DATABASE_URL=postgresql+psycopg2://${POSTGRES_USER:-mlops}:${POSTGRES_PASSWORD:-mlops}@postgres:5432/${POSTGRES_DB:-mlops}
+      - PROMETHEUS_MULTIPROC_DIR=/tmp/prometheus_multiproc   # aggregate metrics across all workers
+    # Gunicorn: 4 workers with Prometheus multiprocess mode (see app/gunicorn.conf.py)
+    command: gunicorn -c app/gunicorn.conf.py "app.app:app"
+    ports:
+      - "8000:8000"
+    volumes:
+      # Keep the latest locally trained model visible after the image is built.
+      - ./models:/app/models:ro
+      - ./drift_baselines:/app/drift_baselines:ro
+      - ./app_config:/app/app_config:ro
+      - mlruns:/mlruns
+    restart: unless-stopped
+    healthcheck:
+      test: ["CMD", "curl", "-f", "http://localhost:8000/health"]
+      interval: 15s
+      timeout: 5s
+      retries: 5
+      start_period: 30s             # give gunicorn time to boot + load model
+    deploy:
+      resources:
+        limits:
+          memory: 2g
+          cpus: "1.5"
+
+  # ---------------------------------------------------------------------------
+  # Prometheus — scrapes /metrics from app
+  # ---------------------------------------------------------------------------
+  prometheus:
+    image: prom/prometheus:latest
+    container_name: prometheus
+    depends_on:
+      app:
+        condition: service_healthy
+    volumes:
+      - ./monitoring/prometheus.yml:/etc/prometheus/prometheus.yml:ro
+      - prometheus_data:/prometheus   # persist metrics across restarts
+    command:
+      - "--config.file=/etc/prometheus/prometheus.yml"
+      - "--storage.tsdb.retention.time=15d"   # keep 15 days of metrics
+    ports:
+      - "9090:9090"
+    restart: unless-stopped
+    deploy:
+      resources:
+        limits:
+          memory: 512m
+          cpus: "0.25"
+
+  # ---------------------------------------------------------------------------
+  # Grafana — dashboards on top of Prometheus
+  # ---------------------------------------------------------------------------
+  grafana:
+    image: grafana/grafana:latest
+    container_name: grafana
+    depends_on:
+      - prometheus
+    environment:
+      - GF_SECURITY_ADMIN_PASSWORD=${GRAFANA_PASSWORD}   # from .env
+      - GF_USERS_ALLOW_SIGN_UP=false                     # no public registration
+      - GF_SERVER_ROOT_URL=http://localhost:3000
+      - GF_UNIFIED_ALERTING_ENABLED=true                 # enable provisioned alert rules
+    volumes:
+      - grafana_data:/var/lib/grafana                    # named volume — not bind mount
+      - ./monitoring/provisioning:/etc/grafana/provisioning:ro
+      - ./monitoring/provisioning/dashboards:/var/lib/grafana/dashboards:ro
+    ports:
+      - "3000:3000"
+    restart: unless-stopped
+    deploy:
+      resources:
+        limits:
+          memory: 256m
+          cpus: "0.25"
+
+  # Marquez (data lineage) runs from its OWN compose file — see marquez-docker-compose.yml.
+  # (The marquez image connects to host "postgres", which collides with the app's postgres
+  #  service in this stack; the standalone file isolates it. Start with:
+  #  docker compose -f marquez-docker-compose.yml up -d)
+
+# =============================================================================
+# Named network — containers resolve each other by service name
+# =============================================================================
+networks:
+  default:
+    name: mlops-stack
+
+# =============================================================================
+# Volumes
+# =============================================================================
+volumes:
+  mlruns:           # MLflow DB + artifacts — shared between mlflow and app
+  prometheus_data:  # Prometheus TSDB — survives container restarts
+  grafana_data:     # Grafana dashboards + settings — survives container restarts
+  postgres_data:    # Postgres data — prediction logs

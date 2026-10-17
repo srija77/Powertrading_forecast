@@ -1,0 +1,15 @@
+mlflow:
+  tracking_uri: "http://localhost:5000"
+  experiment: "dam_mcp_forecast"
+  model_name: "dam_mcp_model"
+  registered_model_name: "dam_mcp_forecast"
+
+serving:
+  host: "0.0.0.0"
+  port: 8000
+
+data:
+  target_col: "dam_mcp"
+
+monitoring:
+  reference_path: "drift_baselines/reference_data.parquet"

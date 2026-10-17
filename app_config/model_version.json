@@ -1,0 +1,11 @@
+{
+  "model_name": "dam_mcp_forecast",
+  "model_version": "2",
+  "alias": "champion",
+  "run_id": "d04851f234734bde8ae0ef1d00d85b50",
+  "run_name": "xgboost",
+  "eval_rmse": 850.3528380193032,
+  "eval_mae": 465.5116307041411,
+  "eval_mape": 7.973117357913894,
+  "promoted_at": "2026-09-11T06:25:38.312953+00:00"
+}

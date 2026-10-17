@@ -1,0 +1,213 @@
+name: ML CI/CD Pipeline
+
+on:
+  push:
+    branches: [main, develop]
+  pull_request:
+    branches: [main]
+  workflow_dispatch:
+    inputs:
+      run_training:
+        description: "Run full DVC training pipeline"
+        type: boolean
+        default: false
+
+env:
+  REGISTRY: ghcr.io
+  APP_IMAGE: ghcr.io/${{ github.repository_owner }}/gmr-app
+  MLFLOW_IMAGE: ghcr.io/${{ github.repository_owner }}/mlflow
+  PYTHON_VERSION: "3.12"
+
+jobs:
+  # ── CI: Lint & Test ────────────────────────────────
+  test:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+        with:
+          fetch-depth: 0 # full history so gitleaks can diff the PR commit range
+
+      - name: Set up Python
+        uses: actions/setup-python@v5
+        with:
+          python-version: ${{ env.PYTHON_VERSION }}
+          cache: pip
+
+      - name: Scan for secrets
+        uses: gitleaks/gitleaks-action@v2
+        env:
+          GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }} # required to scan PRs (gitleaks v2 breaking change)
+
+      - name: Install dependencies
+        run: |
+          pip install -r requirements.txt
+          pip install ruff pytest-cov
+
+  # ── CI: Train → Evaluate → Promote (via DVC) ──────
+  train:
+    runs-on: ubuntu-latest
+    needs: test
+    if: github.event.inputs.run_training == 'true'
+    permissions:
+      contents: write
+    services:
+      mlflow:
+        image: ghcr.io/mlflow/mlflow:v2.19.0
+        ports:
+          - 5000:5000
+        options: >-
+          --health-cmd "curl -f http://localhost:5000/health || exit 1"
+          --health-interval 10s
+          --health-timeout 5s
+          --health-retries 5
+    env:
+      MLFLOW_TRACKING_URI: "http://localhost:5000"
+    steps:
+      - uses: actions/checkout@v4
+        with:
+          token: ${{ secrets.GITHUB_TOKEN }}
+
+      - name: Set up Python
+        uses: actions/setup-python@v5
+        with:
+          python-version: ${{ env.PYTHON_VERSION }}
+          cache: pip
+
+      - name: Install dependencies
+        run: |
+          pip install -r requirements.txt
+          pip install dvc feast==0.61.0 statsmodels xgboost prophet matplotlib
+
+      - name: Pull DVC data
+        run: dvc pull || echo "DVC pull skipped — no remote configured"
+
+      - name: Run DVC pipeline (train → evaluate → promote)
+        run: dvc repro
+
+      - name: Show DVC metrics
+        run: |
+          echo "=== Training Metrics ==="
+          dvc metrics show metrics.json
+          echo "=== Evaluation Metrics ==="
+          dvc metrics show eval_metrics.json
+          echo "=== Promotion Report ==="
+          dvc metrics show promote_report.json
+
+      - name: Upload model artifact
+        uses: actions/upload-artifact@v4
+        with:
+          name: trained-model
+          path: |
+            models/
+            metrics.json
+            eval_metrics.json
+            promote_report.json
+            dvc.lock
+          retention-days: 30
+
+      - name: Gate — fail if evaluation did not pass
+        run: |
+          passed=$(python -c "import json; print(json.load(open('eval_metrics.json'))['passed'])")
+          if [ "$passed" != "True" ]; then
+            echo "::error::Model failed evaluation gate"
+            exit 1
+          fi
+
+      - name: Gate — fail if promotion was skipped
+        run: |
+          action=$(python -c "import json; print(json.load(open('promote_report.json'))['action'])")
+          if [ "$action" = "skipped" ]; then
+            echo "::error::Model promotion was skipped (passed_eval tag not True)"
+            exit 1
+          fi
+          echo "Promotion result: $action"
+
+      # ── CD trigger: commit model version to main ──
+      # This commit changes app_config/model_version.json, which triggers
+      # the build-push → deploy → ArgoCD chain automatically.
+      - name: Commit promoted model version to trigger CD
+        if: success()
+        run: |
+          if [ ! -f app_config/model_version.json ]; then
+            echo "No model_version.json — promotion did not produce a new champion"
+            exit 0
+          fi
+          git config user.name "github-actions[bot]"
+          git config user.email "github-actions[bot]@users.noreply.github.com"
+          git add app_config/model_version.json
+          git diff --cached --quiet && echo "No changes to commit" && exit 0
+          VERSION=$(python -c "import json; print(json.load(open('app_config/model_version.json'))['model_version'])")
+          RMSE=$(python -c "import json; m=json.load(open('app_config/model_version.json')); print(f\"{m['eval_rmse']:.4f}\")")
+          git commit -m "chore: promote model v${VERSION} to production (RMSE=${RMSE})"
+          git push
+
+  # ── CD: Build & Push Docker Images ─────────────────
+  build-push:
+    runs-on: ubuntu-latest
+    needs: test
+    if: github.ref == 'refs/heads/main' && github.event_name == 'push'
+    permissions:
+      contents: read
+      packages: write
+    outputs:
+      image_tag: ${{ steps.tag.outputs.TAG }}
+    steps:
+      - uses: actions/checkout@v4
+
+      - name: Log in to GitHub Container Registry
+        uses: docker/login-action@v3
+        with:
+          registry: ${{ env.REGISTRY }}
+          username: ${{ github.actor }}
+          password: ${{ secrets.GITHUB_TOKEN }}
+
+      - name: Set image tag
+        id: tag
+        run: echo "TAG=$(git rev-parse --short HEAD)" >> $GITHUB_OUTPUT
+
+      - name: Build & push app image
+        uses: docker/build-push-action@v6
+        with:
+          context: .
+          push: true
+          tags: |
+            ${{ env.APP_IMAGE }}:${{ steps.tag.outputs.TAG }}
+            ${{ env.APP_IMAGE }}:latest
+
+      - name: Build & push MLflow image
+        uses: docker/build-push-action@v6
+        with:
+          context: .
+          file: Dockerfile.train
+          push: true
+          tags: |
+            ${{ env.MLFLOW_IMAGE }}:${{ steps.tag.outputs.TAG }}
+            ${{ env.MLFLOW_IMAGE }}:latest
+
+  # ── CD: Update K8s Manifests (GitOps) ──────────────
+  deploy:
+    runs-on: ubuntu-latest
+    needs: build-push
+    permissions:
+      contents: write
+    steps:
+      - uses: actions/checkout@v4
+        with:
+          token: ${{ secrets.GITHUB_TOKEN }}
+
+      - name: Set image tag
+        id: tag
+        run: echo "TAG=$(git rev-parse --short HEAD)" >> $GITHUB_OUTPUT
+
+      - name: Update deployment image tags
+        run: |
+          sed -i "s|image: ghcr.io/.*/gmr-app:.*|image: ${{ env.APP_IMAGE }}:${{ steps.tag.outputs.TAG }}|g" k8s/deployment.yaml
+          sed -i "s|image: ghcr.io/.*/mlflow:.*|image: ${{ env.MLFLOW_IMAGE }}:${{ steps.tag.outputs.TAG }}|g" k8s/deployment.yaml
+
+      - name: Commit and push manifest update
+        run: |
+          git config user.name "github-actions[bot]"
+          git config user.email "github-actions[bot]@users.noreply.github.com"
+          git add k8s/deployment.yaml
+          git diff --cached --quiet || git commit -m "chore: update image tags to ${{ steps.tag.outputs.TAG }}"
+          git push

@@ -8,7 +8,7 @@ Runs, in order:
   1. python src/3_feature_engineering/1_build_features.py   (validated -> prepared parquet)
   2. python src/3_feature_engineering/2_prepare_feast_data.py  (dedup + event_timestamp -> Feast source)
   3. feast apply                                  (register feature views + sync registry)
-  4. feast materialize-incremental <now>          (offline -> online store)
+  4. feast materialize <month-start> <next-month> (offline -> online store)
 
 Ingestion and validation are intentionally NOT run here — this refreshes features
 from already-validated data. Run ingestion/validation separately for new dates.
@@ -23,7 +23,6 @@ import sys
 import argparse
 import subprocess
 from pathlib import Path
-from datetime import datetime
 
 PROJECT_ROOT = Path(__file__).resolve().parents[2]
 FEAST_REPO = PROJECT_ROOT / "my_feature_store" / "feature_repo"
@@ -63,10 +62,14 @@ def main():
     # 3. Register feature views + sync the registry
     run(["feast", "apply"], cwd=FEAST_REPO, step="feast apply")
 
-    # 4. Materialize offline -> online store (up to now)
-    now = datetime.now().strftime("%Y-%m-%dT%H:%M:%S")
-    run(["feast", "materialize-incremental", now], cwd=FEAST_REPO,
-        step=f"feast materialize-incremental {now}")
+    # 4. Backfill the March 2025 source data into the online store.
+    start = f"{args.year}-{args.month:02d}-01T00:00:00"
+    if args.month == 12:
+        end = f"{args.year + 1}-01-01T00:00:00"
+    else:
+        end = f"{args.year}-{args.month + 1:02d}-01T00:00:00"
+    run(["feast", "materialize", start, end], cwd=FEAST_REPO,
+        step=f"feast materialize {start} {end}")
 
     print("\n" + "=" * 70)
     print(" ONLINE STORE REFRESH COMPLETE ".center(70, "="))

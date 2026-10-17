@@ -1,0 +1,19 @@
+FROM python:3.12-slim
+
+WORKDIR /app
+
+RUN apt-get update && apt-get install -y --no-install-recommends curl && rm -rf /var/lib/apt/lists/*
+
+# Install training dependencies
+COPY requirements-app.txt .
+RUN pip install --no-cache-dir -r requirements-app.txt \
+    && pip install --no-cache-dir feast==0.61.0 statsmodels prophet matplotlib
+
+# Copy source code (includes the training entrypoint at src/4_training/train-entrypoint.sh)
+#COPY src/ ./src/
+
+COPY my_feature_store/ ./my_feature_store/
+#COPY app_config/ ./app_config/
+COPY models/ ./models/
+
+#CMD ["python", "src/4_training/1_train.py"]

@@ -1,0 +1,56 @@
+artifact_path: model
+flavors:
+  python_function:
+    env:
+      conda: conda.yaml
+      virtualenv: python_env.yaml
+    loader_module: mlflow.sklearn
+    model_path: model.pkl
+    predict_fn: predict
+    python_version: 3.12.3
+  sklearn:
+    code: null
+    pickled_model: model.pkl
+    serialization_format: cloudpickle
+    sklearn_version: 1.8.0
+mlflow_version: 2.19.0
+model_size_bytes: 1363870
+model_uuid: b09005ba5cec4253853a3aba9badb1ea
+run_id: fdae0c539445419691aa163e04b43e2b
+saved_input_example_info:
+  artifact_path: input_example.json
+  pandas_orient: split
+  serving_input_path: serving_input_example.json
+  type: dataframe
+signature:
+  inputs: '[{"type": "double", "name": "dam_purchase_bid", "required": true}, {"type":
+    "double", "name": "dam_sell_bid", "required": true}, {"type": "double", "name":
+    "dam_mcv", "required": true}, {"type": "double", "name": "dam_volume", "required":
+    true}, {"type": "double", "name": "dam_bid_imbalance", "required": true}, {"type":
+    "double", "name": "rtm_purchase_bid", "required": true}, {"type": "double", "name":
+    "rtm_sell_bid", "required": true}, {"type": "double", "name": "rtm_mcv", "required":
+    true}, {"type": "double", "name": "rtm_volume", "required": true}, {"type": "double",
+    "name": "mcp_spread", "required": true}, {"type": "double", "name": "dam_mcp_lag_1d",
+    "required": true}, {"type": "double", "name": "dam_mcp_lag_2d", "required": true},
+    {"type": "double", "name": "dam_mcp_lag_7d", "required": true}, {"type": "double",
+    "name": "dam_mcp_roll_4h", "required": true}, {"type": "double", "name": "dam_mcp_roll_24h",
+    "required": true}, {"type": "double", "name": "dam_mcp_roll_std_24h", "required":
+    true}, {"type": "double", "name": "avg_temp", "required": true}, {"type": "double",
+    "name": "avg_humidity", "required": true}, {"type": "double", "name": "avg_windspeed",
+    "required": true}, {"type": "double", "name": "avg_cloud_cover", "required": true},
+    {"type": "double", "name": "total_rainfall", "required": true}, {"type": "double",
+    "name": "hour_sin", "required": true}, {"type": "double", "name": "hour_cos",
+    "required": true}, {"type": "double", "name": "dow_sin", "required": true}, {"type":
+    "double", "name": "dow_cos", "required": true}, {"type": "double", "name": "block_sin",
+    "required": true}, {"type": "double", "name": "block_cos", "required": true},
+    {"type": "double", "name": "day_of_month", "required": true}, {"type": "double",
+    "name": "is_weekend", "required": true}, {"type": "double", "name": "is_peak_hour",
+    "required": true}, {"type": "double", "name": "is_morning_ramp", "required": true},
+    {"type": "double", "name": "is_off_peak", "required": true}, {"type": "double",
+    "name": "is_ipl_match", "required": true}, {"type": "double", "name": "is_event",
+    "required": true}, {"type": "double", "name": "is_festival", "required": true},
+    {"type": "double", "name": "is_wedding_season", "required": true}, {"type": "double",
+    "name": "impact", "required": true}]'
+  outputs: '[{"type": "tensor", "tensor-spec": {"dtype": "float32", "shape": [-1]}}]'
+  params: null
+utc_time_created: '2026-10-10 06:13:48.184462'

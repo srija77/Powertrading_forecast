@@ -1,0 +1,199 @@
+{
+  "dataset_drift": true,
+  "drifted_features_count": 24,
+  "total_features": 37,
+  "drift_share": 0.6486,
+  "drifted_features": [
+    "dam_purchase_bid",
+    "dam_sell_bid",
+    "dam_mcv",
+    "dam_volume",
+    "dam_bid_imbalance",
+    "rtm_purchase_bid",
+    "rtm_sell_bid",
+    "rtm_mcv",
+    "rtm_volume",
+    "mcp_spread",
+    "dam_mcp_lag_1d",
+    "dam_mcp_lag_2d",
+    "dam_mcp_lag_7d",
+    "dam_mcp_roll_4h",
+    "dam_mcp_roll_24h",
+    "dam_mcp_roll_std_24h",
+    "avg_temp",
+    "avg_humidity",
+    "avg_windspeed",
+    "avg_cloud_cover",
+    "total_rainfall",
+    "dow_sin",
+    "dow_cos",
+    "day_of_month"
+  ],
+  "feature_details": {
+    "dam_purchase_bid": {
+      "score": 0.29011,
+      "method": "Wasserstein distance (normed)",
+      "threshold": 0.1,
+      "drifted": true
+    },
+    "dam_sell_bid": {
+      "score": 0.711318,
+      "method": "Wasserstein distance (normed)",
+      "threshold": 0.1,
+      "drifted": true
+    },
+    "dam_mcv": {
+      "score": 0.664252,
+      "method": "Wasserstein distance (normed)",
+      "threshold": 0.1,
+      "drifted": true
+    },
+    "dam_volume": {
+      "score": 0.664252,
+      "method": "Wasserstein distance (normed)",
+      "threshold": 0.1,
+      "drifted": true
+    },
+    "dam_bid_imbalance": {
+      "score": 0.579809,
+      "method": "Wasserstein distance (normed)",
+      "threshold": 0.1,
+      "drifted": true
+    },
+    "rtm_purchase_bid": {
+      "score": 0.398264,
+      "method": "Wasserstein distance (normed)",
+      "threshold": 0.1,
+      "drifted": true
+    },
+    "rtm_sell_bid": {
+      "score": 0.56834,
+      "method": "Wasserstein distance (normed)",
+      "threshold": 0.1,
+      "drifted": true
+    },
+    "rtm_mcv": {
+      "score": 0.615366,
+      "method": "Wasserstein distance (normed)",
+      "threshold": 0.1,
+      "drifted": true
+    },
+    "rtm_volume": {
+      "score": 0.614601,
+      "method": "Wasserstein distance (normed)",
+      "threshold": 0.1,
+      "drifted": true
+    },
+    "mcp_spread": {
+      "score": 0.581424,
+      "method": "Wasserstein distance (normed)",
+      "threshold": 0.1,
+      "drifted": true
+    },
+    "dam_mcp_lag_1d": {
+      "score": 0.836821,
+      "method": "Wasserstein distance (normed)",
+      "threshold": 0.1,
+      "drifted": true
+    },
+    "dam_mcp_lag_2d": {
+      "score": 0.337908,
+      "method": "Wasserstein distance (normed)",
+      "threshold": 0.1,
+      "drifted": true
+    },
+    "dam_mcp_lag_7d": {
+      "score": 0.827385,
+      "method": "Wasserstein distance (normed)",
+      "threshold": 0.1,
+      "drifted": true
+    },
+    "dam_mcp_roll_4h": {
+      "score": 0.891806,
+      "method": "Wasserstein distance (normed)",
+      "threshold": 0.1,
+      "drifted": true
+    },
+    "dam_mcp_roll_24h": {
+      "score": 0.726992,
+      "method": "Wasserstein distance (normed)",
+      "threshold": 0.1,
+      "drifted": true
+    },
+    "dam_mcp_roll_std_24h": {
+      "score": 1.12922,
+      "method": "Wasserstein distance (normed)",
+      "threshold": 0.1,
+      "drifted": true
+    },
+    "avg_temp": {
+      "score": 0.83786,
+      "method": "Wasserstein distance (normed)",
+      "threshold": 0.1,
+      "drifted": true
+    },
+    "avg_humidity": {
+      "score": 0.734388,
+      "method": "Wasserstein distance (normed)",
+      "threshold": 0.1,
+      "drifted": true
+    },
+    "avg_windspeed": {
+      "score": 0.495713,
+      "method": "Wasserstein distance (normed)",
+      "threshold": 0.1,
+      "drifted": true
+    },
+    "avg_cloud_cover": {
+      "score": 0.509051,
+      "method": "Wasserstein distance (normed)",
+      "threshold": 0.1,
+      "drifted": true
+    },
+    "total_rainfall": {
+      "score": 0.428821,
+      "method": "Wasserstein distance (normed)",
+      "threshold": 0.1,
+      "drifted": true
+    },
+    "dow_sin": {
+      "score": 0.173679,
+      "method": "Wasserstein distance (normed)",
+      "threshold": 0.1,
+      "drifted": true
+    },
+    "dow_cos": {
+      "score": 0.165085,
+      "method": "Wasserstein distance (normed)",
+      "threshold": 0.1,
+      "drifted": true
+    },
+    "day_of_month": {
+      "score": 0.304672,
+      "method": "Wasserstein distance (normed)",
+      "threshold": 0.1,
+      "drifted": true
+    },
+    "is_weekend": {
+      "score": 0.046522,
+      "method": "Jensen-Shannon distance",
+      "threshold": 0.1,
+      "drifted": false
+    },
+    "is_ipl_match": {
+      "score": 0.078954,
+      "method": "Jensen-Shannon distance",
+      "threshold": 0.1,
+      "drifted": false
+    },
+    "is_festival": {
+      "score": 0.091988,
+      "method": "Jensen-Shannon distance",
+      "threshold": 0.1,
+      "drifted": false
+    }
+  },
+  "reference_rows": 1843,
+  "current_rows": 8,
+  "report_time": "2026-07-12T07:38:44.958485+00:00"
+}

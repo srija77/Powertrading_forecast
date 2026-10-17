@@ -314,7 +314,7 @@ def train_prophet(ts_train, y_train, ts_val, y_val) -> Dict[str, float]:
     return metrics
 
 
-def train_gradient_boosting(X_train, y_train, X_val, y_val, cat_cols, num_cols) -> Tuple[Dict[str, float], Pipeline]:
+def train_gradient_boosting(X_train, y_train, X_val, y_val, cat_cols, num_cols) -> Tuple[Dict[str, float], Pipeline, str]:
     log.info("[4/5] Training Gradient Boosting ...")
     with mlflow.start_run(run_name="gradient_boosting"):
         preprocessor = build_preprocessor(cat_cols, num_cols)
@@ -337,13 +337,14 @@ def train_gradient_boosting(X_train, y_train, X_val, y_val, cat_cols, num_cols) 
         mlflow.sklearn.log_model(
             sk_model=pipe, artifact_path="model", signature=sig,
             input_example=X_train.head(5),
+            skops_trusted_types=["numpy.dtype", "sklearn.tree._tree.Tree"],
         )
         run_id = mlflow.active_run().info.run_id
         log.info(f"  GBR   -> RMSE={metrics['rmse']:.4f}  MAE={metrics['mae']:.4f}  MAPE={metrics['mape']:.2f}%")
     return metrics, pipe, run_id
 
 
-def train_xgboost(X_train, y_train, X_val, y_val, cat_cols, num_cols) -> Tuple[Dict[str, float], Pipeline]:
+def train_xgboost(X_train, y_train, X_val, y_val, cat_cols, num_cols) -> Tuple[Dict[str, float], Pipeline, str]:
     log.info("[5/5] Training XGBoost ...")
     with mlflow.start_run(run_name="xgboost"):
         preprocessor = build_preprocessor(cat_cols, num_cols)
@@ -375,6 +376,7 @@ def train_xgboost(X_train, y_train, X_val, y_val, cat_cols, num_cols) -> Tuple[D
         mlflow.sklearn.log_model(
             sk_model=pipe, artifact_path="model", signature=sig,
             input_example=X_train.head(5),
+            skops_trusted_types=['numpy.dtype', 'xgboost.core.Booster', 'xgboost.sklearn.XGBRegressor'],
         )
         run_id = mlflow.active_run().info.run_id
         log.info(f"  XGB   -> RMSE={metrics['rmse']:.4f}  MAE={metrics['mae']:.4f}  MAPE={metrics['mape']:.2f}%")

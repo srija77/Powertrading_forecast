@@ -1,0 +1,10 @@
+{
+  "evaluated_model": "xgboost",
+  "evaluated_run_id": "64362f3c5bd74e1eba405aae8c883ce0",
+  "eval_rows": 346,
+  "passed": true,
+  "eval_rmse": 800.7879408606912,
+  "eval_mae": 457.42803241002076,
+  "eval_mape": 8.124591637905905,
+  "eval_r2": 0.9147064136229142
+}

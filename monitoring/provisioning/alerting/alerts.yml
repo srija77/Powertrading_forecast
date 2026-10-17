@@ -1,0 +1,197 @@
+# =============================================================================
+# Grafana Unified Alerting — provisioned alert rules
+# =============================================================================
+# Docs: https://grafana.com/docs/grafana/latest/alerting/set-up/provision-alerting-resources/file-provisioning/
+#
+# These rules are loaded automatically by Grafana on startup.
+# Edit evaluation intervals and thresholds below to match your SLOs.
+# =============================================================================
+
+apiVersion: 1
+
+groups:
+  - orgId: 1
+    name: mlops-alerts
+    folder: MLOps Alerts
+    interval: 1m
+    rules:
+
+      # -----------------------------------------------------------------------
+      # 1. Data Drift Detected
+      # -----------------------------------------------------------------------
+      - uid: drift-detected-alert
+        title: Data Drift Detected
+        condition: drift_check
+        for: 2m
+        annotations:
+          summary: "Data drift has been detected in the inference pipeline"
+          description: "The drift_detected gauge has been 1 for over 2 minutes. Investigate input feature distributions and consider retraining."
+        labels:
+          severity: warning
+          team: mlops
+        data:
+          - refId: drift_query
+            relativeTimeRange:
+              from: 300
+              to: 0
+            datasourceUid: prometheus
+            model:
+              expr: drift_detected
+              intervalMs: 15000
+              maxDataPoints: 20
+          - refId: drift_check
+            relativeTimeRange:
+              from: 300
+              to: 0
+            datasourceUid: __expr__
+            model:
+              type: threshold
+              expression: drift_query
+              conditions:
+                - evaluator:
+                    type: gt
+                    params: [0]
+
+      # -----------------------------------------------------------------------
+      # 2. High Error Rate (> 10%)
+      # -----------------------------------------------------------------------
+      - uid: high-error-rate-alert
+        title: High Inference Error Rate
+        condition: error_check
+        for: 5m
+        annotations:
+          summary: "Inference error rate has exceeded 10%"
+          description: "More than 10% of inference requests are failing. Check application logs and model health."
+        labels:
+          severity: critical
+          team: mlops
+        data:
+          - refId: error_rate
+            relativeTimeRange:
+              from: 600
+              to: 0
+            datasourceUid: prometheus
+            model:
+              expr: rate(inference_errors_total[5m]) / rate(inference_requests_total[5m]) * 100
+              intervalMs: 15000
+              maxDataPoints: 20
+          - refId: error_check
+            relativeTimeRange:
+              from: 600
+              to: 0
+            datasourceUid: __expr__
+            model:
+              type: threshold
+              expression: error_rate
+              conditions:
+                - evaluator:
+                    type: gt
+                    params: [10]
+
+      # -----------------------------------------------------------------------
+      # 3. Model Not Loaded
+      # -----------------------------------------------------------------------
+      - uid: model-not-loaded-alert
+        title: Model Not Loaded
+        condition: model_check
+        for: 1m
+        annotations:
+          summary: "The serving model is not loaded"
+          description: "The model_loaded gauge is 0 — the app cannot serve predictions. Check MLflow connectivity and model registry."
+        labels:
+          severity: critical
+          team: mlops
+        data:
+          - refId: model_query
+            relativeTimeRange:
+              from: 300
+              to: 0
+            datasourceUid: prometheus
+            model:
+              expr: model_loaded
+              intervalMs: 15000
+              maxDataPoints: 20
+          - refId: model_check
+            relativeTimeRange:
+              from: 300
+              to: 0
+            datasourceUid: __expr__
+            model:
+              type: threshold
+              expression: model_query
+              conditions:
+                - evaluator:
+                    type: lt
+                    params: [1]
+
+      # -----------------------------------------------------------------------
+      # 4. High Latency (P95 > 2 seconds)
+      # -----------------------------------------------------------------------
+      - uid: high-latency-alert
+        title: High Inference Latency
+        condition: latency_check
+        for: 5m
+        annotations:
+          summary: "P95 inference latency exceeds 2 seconds"
+          description: "The 95th percentile latency is above 2s for over 5 minutes. Check resource utilization and model complexity."
+        labels:
+          severity: warning
+          team: mlops
+        data:
+          - refId: latency_query
+            relativeTimeRange:
+              from: 600
+              to: 0
+            datasourceUid: prometheus
+            model:
+              expr: histogram_quantile(0.95, rate(inference_latency_seconds_bucket[5m]))
+              intervalMs: 15000
+              maxDataPoints: 20
+          - refId: latency_check
+            relativeTimeRange:
+              from: 600
+              to: 0
+            datasourceUid: __expr__
+            model:
+              type: threshold
+              expression: latency_query
+              conditions:
+                - evaluator:
+                    type: gt
+                    params: [2]
+
+      # -----------------------------------------------------------------------
+      # 5. No Traffic (zero requests for 10 minutes)
+      # -----------------------------------------------------------------------
+      - uid: no-traffic-alert
+        title: No Inference Traffic
+        condition: traffic_check
+        for: 10m
+        annotations:
+          summary: "No inference requests received for 10 minutes"
+          description: "The request rate has dropped to zero. This may indicate the app is unreachable or upstream systems are down."
+        labels:
+          severity: warning
+          team: mlops
+        data:
+          - refId: traffic_query
+            relativeTimeRange:
+              from: 600
+              to: 0
+            datasourceUid: prometheus
+            model:
+              expr: rate(inference_requests_total[5m])
+              intervalMs: 15000
+              maxDataPoints: 20
+          - refId: traffic_check
+            relativeTimeRange:
+              from: 600
+              to: 0
+            datasourceUid: __expr__
+            model:
+              type: threshold
+              expression: traffic_query
+              conditions:
+                - evaluator:
+                    type: lt
+                    params: [0.001]

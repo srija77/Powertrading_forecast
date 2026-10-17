@@ -1,0 +1,20 @@
+{
+  "action": "not_promoted",
+  "reason": "eval_rmse not better: 800.7879 vs 800.7879",
+  "latest_version": "2",
+  "latest_run_id": "64362f3c5bd74e1eba405aae8c883ce0",
+  "latest_metrics": {
+    "eval_rmse": 800.7879408606912,
+    "eval_mae": 457.42803241002076,
+    "eval_mape": 8.124591637905905,
+    "eval_r2": 0.9147064136229142
+  },
+  "production_version": "1",
+  "production_run_id": "91eb9f8b8cd64c27ae295b8cb8abf796",
+  "production_metrics": {
+    "eval_rmse": 800.7879408606912,
+    "eval_mae": 457.42803241002076,
+    "eval_mape": 8.124591637905905,
+    "eval_r2": 0.9147064136229142
+  }
+}

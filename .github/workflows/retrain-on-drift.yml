@@ -1,0 +1,107 @@
+name: Retrain on Drift
+
+# ───────────────────────────────────────────────────────────────────────────
+# Scheduled drift gate. Runs drift.py against the training reference baseline;
+# if data drift is detected, it triggers the existing `train` job in
+# ml-ci.yml (train → evaluate → promote → commit model_version.json → CD).
+#
+# This is the "conditional retrain" loop: the drift signal you already produce
+# is turned into a pipeline run, instead of dead-ending at a Grafana warning.
+# ───────────────────────────────────────────────────────────────────────────
+
+on:
+  schedule:
+    # Every 6 hours (UTC). Adjust cadence to how fast your data moves.
+    - cron: "0 */6 * * *"
+  workflow_dispatch:
+    inputs:
+      current_data:
+        description: "Path to the CURRENT data to check for drift (CSV or Parquet)"
+        type: string
+        default: "sample_data/batch_sample.csv"
+      force_retrain:
+        description: "Skip the drift check and retrain anyway (demo / manual)"
+        type: boolean
+        default: false
+
+env:
+  PYTHON_VERSION: "3.12"
+  # Default source of "current" data for the scheduled run.
+  # ▸ For a real deployment, point this at your logged production inference data
+  #   (e.g. an exported parquet of recent /predict inputs). For the demo it uses
+  #   the shipped sample so the workflow is self-contained and always runnable.
+  CURRENT_DATA: "sample_data/batch_sample.csv"
+
+jobs:
+  # ── Gate: run drift detection, decide whether to retrain ──────────────
+  drift-gate:
+    runs-on: ubuntu-latest
+    outputs:
+      should_retrain: ${{ steps.decide.outputs.should_retrain }}
+    steps:
+      - uses: actions/checkout@v4
+
+      - name: Set up Python
+        uses: actions/setup-python@v5
+        with:
+          python-version: ${{ env.PYTHON_VERSION }}
+          cache: pip
+
+      - name: Install drift dependencies
+        run: |
+          pip install -r requirements.txt
+          pip install "evidently>=0.4" pandas pyarrow
+
+      - name: Resolve current-data path
+        id: data
+        run: |
+          # workflow_dispatch input wins; otherwise the scheduled default.
+          CUR="${{ github.event.inputs.current_data }}"
+          [ -z "$CUR" ] && CUR="${{ env.CURRENT_DATA }}"
+          echo "path=$CUR" >> "$GITHUB_OUTPUT"
+          echo "Using current data: $CUR"
+
+      - name: Run drift detection
+        run: python src/drift.py --current "${{ steps.data.outputs.path }}"
+
+      - name: Decide whether to retrain
+        id: decide
+        run: |
+          if [ "${{ github.event.inputs.force_retrain }}" = "true" ]; then
+            echo "Force retrain requested — bypassing drift gate."
+            echo "should_retrain=true" >> "$GITHUB_OUTPUT"
+            exit 0
+          fi
+          DRIFT=$(python -c "import json; print(json.load(open('monitoring/drift_summary.json'))['dataset_drift'])")
+          echo "dataset_drift = $DRIFT"
+          if [ "$DRIFT" = "True" ]; then
+            echo "::warning::Data drift detected — triggering retrain."
+            echo "should_retrain=true" >> "$GITHUB_OUTPUT"
+          else
+            echo "No drift — nothing to do."
+            echo "should_retrain=false" >> "$GITHUB_OUTPUT"
+          fi
+
+      - name: Upload drift report
+        uses: actions/upload-artifact@v4
+        with:
+          name: drift-summary
+          path: monitoring/drift_summary.json
+          retention-days: 30
+
+  # ── Trigger: fire the existing train job when drift is detected ───────
+  trigger-retrain:
+    runs-on: ubuntu-latest
+    needs: drift-gate
+    if: needs.drift-gate.outputs.should_retrain == 'true'
+    permissions:
+      actions: write        # required for `gh workflow run` (workflow_dispatch)
+    steps:
+      - uses: actions/checkout@v4
+
+      - name: Dispatch train pipeline (train → evaluate → promote → CD)
+        env:
+          GH_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+        run: |
+          gh workflow run ml-ci.yml --ref main -f run_training=true
+          echo "Dispatched ml-ci.yml train job. Follow it in the Actions tab."
