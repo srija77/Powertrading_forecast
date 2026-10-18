@@ -22,7 +22,7 @@ spec:
     spec:
       containers:
         - name: gmr-app
-          image: ghcr.io/srija77/powertrading-forecast-gmr-app:66986eb
+          image: ghcr.io/srija77/powertrading-forecast-gmr-app:47337ef
           command: ["gunicorn"]
           args:
             # Required: on_starting() in this config creates PROMETHEUS_MULTIPROC_DIR.
