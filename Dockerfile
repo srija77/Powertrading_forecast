@@ -10,7 +10,9 @@ RUN pip install --no-cache-dir -r requirements-app.txt
 COPY app/ ./app/
 COPY src/ ./src/
 COPY app_config/ ./app_config/
-COPY models/ ./models/
+# Model artifacts are stored in MLflow/DVC and are not checked into Git.
+# Keep the fallback directory available without requiring it in the build context.
+RUN mkdir -p /app/models
 COPY monitoring/ ./monitoring/
 
 EXPOSE 8000
