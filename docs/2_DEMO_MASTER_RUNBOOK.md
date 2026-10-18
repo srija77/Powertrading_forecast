@@ -259,7 +259,7 @@ histogram_quantile(0.95, rate(inference_latency_seconds_bucket[5m]))            
 ## Section 4 — CI/CD → GitOps
 
 - **Repo** — `github.com/your-org/my-mlops-project`
-- **Registry** — `ghcr.io/your-org/gmr-app`, `ghcr.io/your-org/mlflow`
+- **Registry** — `ghcr.io/srija77/powertrading-forecast-gmr-app`, `ghcr.io/srija77/powertrading-forecast-mlflow`
 - **ArgoCD app** — `gmr-mlops` (namespace `argocd`) → namespace `mlops`
 - **Watched path** — `k8s/` on branch `main`
 - Contact — mlops-team@example.com

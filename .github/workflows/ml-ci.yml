@@ -14,8 +14,10 @@ on:
 
 env:
   REGISTRY: ghcr.io
-  APP_IMAGE: ghcr.io/${{ github.repository_owner }}/gmr-app
-  MLFLOW_IMAGE: ghcr.io/${{ github.repository_owner }}/mlflow
+  # Use package names owned by this repository. The legacy gmr-app/mlflow
+  # packages are not writable by this repository's GITHUB_TOKEN.
+  APP_IMAGE: ghcr.io/${{ github.repository_owner }}/powertrading-forecast-gmr-app
+  MLFLOW_IMAGE: ghcr.io/${{ github.repository_owner }}/powertrading-forecast-mlflow
   PYTHON_VERSION: "3.12"
 
 jobs:
@@ -170,6 +172,7 @@ jobs:
         with:
           context: .
           push: true
+          labels: org.opencontainers.image.source=${{ github.server_url }}/${{ github.repository }}
           tags: |
             ${{ env.APP_IMAGE }}:${{ steps.tag.outputs.TAG }}
             ${{ env.APP_IMAGE }}:latest
@@ -180,6 +183,7 @@ jobs:
           context: .
           file: Dockerfile.train
           push: true
+          labels: org.opencontainers.image.source=${{ github.server_url }}/${{ github.repository }}
           tags: |
             ${{ env.MLFLOW_IMAGE }}:${{ steps.tag.outputs.TAG }}
             ${{ env.MLFLOW_IMAGE }}:latest
@@ -201,8 +205,8 @@ jobs:
 
       - name: Update deployment image tags
         run: |
-          sed -i "s|image: ghcr.io/.*/gmr-app:.*|image: ${{ env.APP_IMAGE }}:${{ steps.tag.outputs.TAG }}|g" k8s/deployment.yaml
-          sed -i "s|image: ghcr.io/.*/mlflow:.*|image: ${{ env.MLFLOW_IMAGE }}:${{ steps.tag.outputs.TAG }}|g" k8s/deployment.yaml
+          sed -i "s|image: ghcr.io/.*/powertrading-forecast-gmr-app:.*|image: ${{ env.APP_IMAGE }}:${{ steps.tag.outputs.TAG }}|g" k8s/deployment.yaml
+          sed -i "s|image: ghcr.io/.*/powertrading-forecast-mlflow:.*|image: ${{ env.MLFLOW_IMAGE }}:${{ steps.tag.outputs.TAG }}|g" k8s/deployment.yaml
 
       - name: Commit and push manifest update
         run: |
